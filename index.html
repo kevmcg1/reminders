@@ -945,7 +945,7 @@
   <div class="modal wide" style="position: relative;">
     <div class="modal-head">
       <h2>Settings</h2>
-      <button class="icon-btn" id="settingsClose"><i class="fa-solid fa-xmark"></i></button>
+      <button class="icon-btn" id="settingsClose" aria-label="Close settings"><i class="fa-solid fa-xmark"></i></button>
     </div>
 
     <div class="settings-section">
@@ -960,28 +960,28 @@
           <div class="label">Compact list</div>
           <div class="sub">Denser sidebar, hides meta line</div>
         </div>
-        <div class="toggle" id="densityToggle"></div>
+        <div class="toggle" id="densityToggle" role="switch" tabindex="0" aria-label="Compact list"></div>
       </div>
       <div class="setting-row">
         <div>
           <div class="label">Separate completed</div>
           <div class="sub">Move done items out of the to-do list into their own collapsible section</div>
         </div>
-        <div class="toggle on" id="groupToggle"></div>
+        <div class="toggle on" id="groupToggle" role="switch" tabindex="0" aria-label="Separate completed"></div>
       </div>
       <div class="setting-row">
         <div>
           <div class="label">Confirm before delete</div>
           <div class="sub">Ask before deleting a single reminder</div>
         </div>
-        <div class="toggle" id="confirmDelToggle"></div>
+        <div class="toggle" id="confirmDelToggle" role="switch" tabindex="0" aria-label="Confirm before delete"></div>
       </div>
       <div class="setting-row">
         <div>
           <div class="label">Spell check</div>
           <div class="sub">Underline misspellings in titles &amp; notes</div>
         </div>
-        <div class="toggle on" id="spellcheckToggle"></div>
+        <div class="toggle on" id="spellcheckToggle" role="switch" tabindex="0" aria-label="Spell check"></div>
       </div>
     </div>
 
@@ -1014,7 +1014,7 @@
   <div class="modal wide" style="position: relative;">
     <div class="modal-head">
       <h2>Notifications</h2>
-      <button class="icon-btn" id="notifClose"><i class="fa-solid fa-xmark"></i></button>
+      <button class="icon-btn" id="notifClose" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
     </div>
     <div class="notif-state" id="notifState"></div>
 
@@ -1050,7 +1050,7 @@
   <div class="modal wide" style="position: relative;">
     <div class="modal-head">
       <h2>How typing works</h2>
-      <button class="icon-btn" id="helpClose"><i class="fa-solid fa-xmark"></i></button>
+      <button class="icon-btn" id="helpClose" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
     </div>
     <p class="help-intro">Type plain English in the <strong>title</strong> or <strong>notes</strong> and the app recognizes dates, times, and repeats. When it spots something it shows an <span class="chip inline-chip"><i class="fa-solid fa-wand-magic-sparkles"></i> Auto-apply settings for…</span> prompt — press <kbd>Enter</kbd> (title) or <kbd>Ctrl</kbd>+<kbd>Enter</kbd> (notes), or click <strong>Apply</strong>. The schedule fields below accept the same phrases and show a live <span class="detect ok inline-detect"><i class="fa-solid fa-circle-check"></i> Detected</span> badge.</p>
 
@@ -1115,7 +1115,7 @@ const QUICK_ICONS = ['fa-flag', 'fa-star', 'fa-heart'];
 // Content for the "How typing works" tutorial.
 const HELP = [
   { icon: 'fa-calendar-day', title: 'Dates', ex: ['today', 'tomorrow', 'next monday', 'dec 25', '12/25', 'in 3 days', 'on the 5th'] },
-  { icon: 'fa-clock', title: 'Times', ex: ['3pm', '3:30pm', '15:00', 'noon', 'midnight', 'this evening', 'tomorrow morning'] },
+  { icon: 'fa-clock', title: 'Times', ex: ['3pm', '3:30pm', 'at 15:00', 'noon', 'midnight', 'this evening', 'tomorrow morning'] },
   { icon: 'fa-wand-magic-sparkles', title: 'Date + time together', ex: ['call mom tomorrow at 9am', 'dentist dec 15 at 2pm', 'standup at 2pm'] },
   { icon: 'fa-repeat', title: 'Repeat', ex: ['every day', 'weekly', 'every 2 weeks', 'every weekday', 'hourly', 'every 3 days'] },
   { icon: 'fa-hourglass-half', title: 'Durations — for Repeat, Remind again, End', ex: ['13 mins', '2 hrs 3 mins', '90m', '1 hour 30 min'] },
@@ -1163,13 +1163,16 @@ function load() {
 // Fill any missing fields on a stored reminder with current defaults,
 // preserving everything the user already saved (including its id).
 function migrateReminder(x) {
-  const merged = Object.assign(newReminder(), x);
-  if (!x || !x.id) merged.id = uid();
+  const text = (v, d = '') => typeof v === 'string' ? v : (typeof v === 'number' || typeof v === 'boolean') ? String(v) : d;
+  const safeId = v => typeof v === 'string' && /^[\w-]+$/.test(v);
+  const merged = Object.assign(newReminder(), x && typeof x === 'object' && !Array.isArray(x) ? x : {});
+  if (!safeId(merged.id)) merged.id = uid();
+  merged.snooze = text(merged.snooze, 'Off');
   if (LEGACY_SNOOZE[merged.snooze]) merged.snooze = LEGACY_SNOOZE[merged.snooze]; // old id -> label
   // Convert legacy structured repeat ids (and old "custom") to the new label form
   if (merged.repeat === 'custom') merged.repeat = `Every ${x.customInterval || 1} ${x.customUnit || 'days'}`;
   else if (LEGACY_REPEAT[merged.repeat]) merged.repeat = LEGACY_REPEAT[merged.repeat];
-  else if (typeof merged.repeat !== 'string' || !merged.repeat) merged.repeat = 'Never';
+  else if (typeof merged.repeat !== 'string') merged.repeat = 'Never';
   // Legacy end-of-repeat (structured) -> free-text endText
   if (!x || x.endText === undefined) {
     if (x && x.endRepeat === 'afterCount') merged.endText = `After ${x.endCount || 1} times`;
@@ -1181,9 +1184,17 @@ function migrateReminder(x) {
   if (typeof merged.icon !== 'string') merged.icon = '';
   // Checklist: ensure a clean array of {id,text,done}
   if (!Array.isArray(merged.checklist)) merged.checklist = [];
+  const seenIds = new Set();
   merged.checklist = merged.checklist
     .filter(it => it && typeof it === 'object')
-    .map(it => ({ id: it.id || uid(), text: String(it.text || ''), done: !!it.done }));
+    .map(it => { let id = safeId(it.id) && !seenIds.has(it.id) ? it.id : uid(); seenIds.add(id); return { id, text: text(it.text), done: !!it.done }; });
+  // Make every field the type the rest of the app relies on (old saves and imported files can hold anything)
+  merged.title = text(merged.title); merged.notes = text(merged.notes); merged.endText = text(merged.endText, 'Never');
+  merged.completed = !!merged.completed;
+  merged.due = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(text(merged.due)) && !isNaN(new Date(merged.due)) ? merged.due : '';
+  if (!URGENCIES.some(u => u.id === merged.urgency)) merged.urgency = 'none';
+  if (merged.icon && !ICONS.includes(merged.icon)) merged.icon = '';
+  if (!Number.isFinite(merged.created)) merged.created = Date.now();
   return merged;
 }
 
@@ -1225,6 +1236,8 @@ function fmtDate(iso) {
    "pay rent on the 1st monthly" -> monthly on day 1
    ========================================================= */
 function toLocalInput(d) {
+  // a date the date picker cannot hold (invalid, or outside years 1000-9999) is "no date", never a garbled string
+  if (isNaN(d) || d.getFullYear() < 1000 || d.getFullYear() > 9999) return '';
   const p = n => String(n).padStart(2, '0');
   return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
 }
@@ -1403,6 +1416,7 @@ function updateFullTitle() {
   }
 }
 
+let detailRendering = false; // re-rendering removes the focused field, which fires blur: that must not apply its text (again) mid-render
 function applyParse(reminder, parsed, key) {
   if (!parsed.matched) return;
   key = key || 'title';
@@ -1457,7 +1471,7 @@ function parseDuration(text) {
   if (leftover !== '') return null;
   let minutes = 0;
   const parts = [];
-  order.forEach(u => { if (acc[u]) { minutes += acc[u] * perMin[u]; parts.push(`${acc[u]} ${u}${acc[u] !== 1 ? 's' : ''}`); } });
+  order.forEach(u => { if (acc[u] !== undefined) { minutes += acc[u] * perMin[u]; parts.push(`${acc[u]} ${u}${acc[u] !== 1 ? 's' : ''}`); } });
   return { minutes, label: parts.join(' ') };
 }
 
@@ -1583,11 +1597,11 @@ function itemEl(r) {
   if (r.checklist && r.checklist.length) metaBits.push(`<span><i class="fa-solid fa-list-check"></i> ${r.checklist.filter(x=>x.done).length}/${r.checklist.length}</span>`);
 
   el.innerHTML = `
-    <button class="ri-check ${r.completed ? 'done' : ''}" data-check="${r.id}"><i class="fa-solid fa-check"></i></button>
+    <button class="ri-check ${r.completed ? 'done' : ''}" data-check="${r.id}" aria-label="${r.completed ? 'Mark as not completed' : 'Mark as completed'}"><i class="fa-solid fa-check"></i></button>
     <div class="ri-body">
       <div class="ri-title">
         ${r.icon ? `<i class="fa-solid ${r.icon}" style="color:var(--accent);font-size:11px;"></i>` : ''}
-        ${escapeHtml(r.title) || '<span style="color:var(--text-faint)">Untitled</span>'}
+        ${escapeHtml(r.title.trim()) || '<span style="color:var(--text-faint)">Untitled</span>'}
       </div>
       <div class="ri-meta">
         <span class="urg-dot-wrap"><span class="urg-dot u-${r.urgency}"></span></span>
@@ -1621,7 +1635,7 @@ function itemEl(r) {
 }
 
 function escapeHtml(s) {
-  return (s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
 
 /* ---------- Detail view ---------- */
@@ -1638,15 +1652,17 @@ function renderDetail() {
   empty.classList.add('hidden');
   detail.classList.remove('hidden');
 
-  detail.innerHTML = `
+  detailRendering = true;
+  try { detail.innerHTML = `
     <button class="detail-back" id="d-back"><i class="fa-solid fa-chevron-left"></i> All reminders</button>
     <div class="detail-top">
-      <button class="detail-check ${r.completed ? 'done' : ''}" id="d-check"><i class="fa-solid fa-check"></i></button>
+      <button class="detail-check ${r.completed ? 'done' : ''}" id="d-check" aria-label="${r.completed ? 'Mark as not completed' : 'Mark as completed'}"><i class="fa-solid fa-check"></i></button>
       <input class="detail-title-input" id="d-title" placeholder="Reminder title" value="${escapeHtml(r.title)}" autocomplete="off" spellcheck="${settings.spellcheck}">
     </div>
     <div class="full-title" id="full-title"></div>
     <div class="nlp-hint" id="nlp-hint"></div>
-    <textarea class="detail-notes" id="d-notes" placeholder="Add notes..." spellcheck="${settings.spellcheck}">${escapeHtml(r.notes)}</textarea>
+    <textarea class="detail-notes" id="d-notes" placeholder="Add notes..." spellcheck="${settings.spellcheck}">
+${escapeHtml(r.notes)}</textarea>
     <div class="nlp-hint" id="nlp-hint-notes"></div>
 
     <div class="group-title row">
@@ -1679,7 +1695,7 @@ function renderDetail() {
                 ${DUE_PRESETS.map(s => `<option value="${escapeHtml(s)}">${s}</option>`).join('')}
               </select>
             </div>
-            <input type="datetime-local" id="d-due" value="${r.due || ''}">
+            <input type="datetime-local" id="d-due" aria-label="Exact date and time" value="${r.due || ''}">
           </div>
           <div class="detect empty" id="detect-datetime"></div>
         </div>
@@ -1764,7 +1780,7 @@ function renderDetail() {
       <span class="created-note">Created ${new Date(r.created).toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'})}</span>
       <button class="delete-btn" id="d-delete"><i class="fa-solid fa-trash-can"></i> Delete</button>
     </div>
-  `;
+  `; } finally { detailRendering = false; }
 
   wireDetail(r);
 }
@@ -1774,16 +1790,16 @@ function renderIconPicker(r, gridOpen) {
   const box = document.getElementById('d-icon');
   if (!box) return;
   const extra = (r.icon && !QUICK_ICONS.includes(r.icon))
-    ? `<button class="icon-choice sel" data-icon="${r.icon}"><i class="fa-solid ${r.icon}"></i></button>` : '';
+    ? `<button class="icon-choice sel" data-icon="${r.icon}" aria-label="${r.icon.slice(3)} icon"><i class="fa-solid ${r.icon}"></i></button>` : '';
   box.innerHTML = `
     <div class="icon-quick">
-      <button class="icon-choice ${!r.icon ? 'sel' : ''}" data-icon="" title="None"><i class="fa-solid fa-ban"></i></button>
-      ${QUICK_ICONS.map(ic => `<button class="icon-choice ${r.icon === ic ? 'sel' : ''}" data-icon="${ic}"><i class="fa-solid ${ic}"></i></button>`).join('')}
+      <button class="icon-choice ${!r.icon ? 'sel' : ''}" data-icon="" title="None" aria-label="No icon"><i class="fa-solid fa-ban"></i></button>
+      ${QUICK_ICONS.map(ic => `<button class="icon-choice ${r.icon === ic ? 'sel' : ''}" data-icon="${ic}" aria-label="${ic.slice(3)} icon"><i class="fa-solid ${ic}"></i></button>`).join('')}
       ${extra}
       <button class="icon-choice icon-more ${gridOpen ? 'open' : ''}" data-more title="More icons"><i class="fa-solid fa-ellipsis"></i></button>
     </div>
     <div class="icon-grid" ${gridOpen ? '' : 'hidden'}>
-      ${ICONS.map(ic => `<button class="icon-choice ${r.icon === ic ? 'sel' : ''}" data-icon="${ic}"><i class="fa-solid ${ic}"></i></button>`).join('')}
+      ${ICONS.map(ic => `<button class="icon-choice ${r.icon === ic ? 'sel' : ''}" data-icon="${ic}" aria-label="${ic.slice(3)} icon"><i class="fa-solid ${ic}"></i></button>`).join('')}
     </div>`;
 }
 
@@ -1813,7 +1829,7 @@ function renderChecklist(r) {
   if (!box) return;
   box.innerHTML = r.checklist.map(it => `
     <div class="cl-item ${it.done ? 'done' : ''}" data-id="${it.id}">
-      <button class="cl-check ${it.done ? 'done' : ''}" data-act="toggle" tabindex="-1"><i class="fa-solid fa-check"></i></button>
+      <button class="cl-check ${it.done ? 'done' : ''}" data-act="toggle" tabindex="-1" aria-label="${it.done ? 'Mark item as not done' : 'Mark item as done'}"><i class="fa-solid fa-check"></i></button>
       <input class="cl-text" value="${escapeHtml(it.text)}" data-act="text" placeholder="Item">
       <button class="cl-del" data-act="del" tabindex="-1" title="Remove"><i class="fa-solid fa-xmark"></i></button>
     </div>`).join('');
@@ -1856,6 +1872,7 @@ function wireDetail(r) {
       if (key === 'notes') autoGrow(input);
       save();
       if (key === 'title') { renderList(); updateFullTitle(); }
+      else if (document.getElementById('search').value.trim()) renderList(); // notes are searched too
       refresh();
     });
     input.addEventListener('keydown', e => {
@@ -1869,6 +1886,7 @@ function wireDetail(r) {
       }
     });
     input.addEventListener('blur', () => {
+      if (detailRendering) return;
       const parsed = parseNaturalLanguage(input.value);
       if (parsed.matched) applyParse(r, parsed, key);
     });
@@ -1921,7 +1939,9 @@ function wireDetail(r) {
     save(); renderList(); updateNotifWarning(r);
   });
   duePick.addEventListener('change', e => {
-    r.due = e.target.value;
+    // the picker lets a person type a year with more than 4 digits; only YYYY-MM-DDTHH:MM is stored
+    r.due = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(e.target.value) ? e.target.value : '';
+    e.target.value = r.due;
     dueText.value = r.due ? fmtDate(r.due) : '';
     duePreset.value = '__custom';
     updateDetect('datetime', dueText.value);
@@ -2193,9 +2213,12 @@ function performReorder(id, beforeId) {
   if (beforeId && beforeId !== id) {
     const bi = reminders.findIndex(x => x.id === beforeId);
     reminders.splice(bi < 0 ? reminders.length : bi, 0, moved);
-  } else if (settings.groupCompleted && !moved.completed) {
-    const fc = reminders.findIndex(x => x.completed);
-    reminders.splice(fc < 0 ? reminders.length : fc, 0, moved);
+  } else if (settings.groupCompleted) {
+    // end of the dragged item's own group: right after the last reminder with the same completed state
+    // (completed ones can sit anywhere in the saved order, so "before the first completed" is not the end of the to-do list)
+    let last = -1;
+    reminders.forEach((x, i) => { if (!!x.completed === !!moved.completed) last = i; });
+    reminders.splice(last + 1, 0, moved);
   } else {
     reminders.push(moved);
   }
@@ -2236,7 +2259,9 @@ function importTxt(text) {
     return;
   }
   // sanitize / merge with defaults, regenerate ids to avoid collisions
-  const clean = imported.map(x => Object.assign(newReminder(), x, { id: uid() }));
+  const clean = imported
+    .filter(x => x && typeof x === 'object' && !Array.isArray(x))
+    .map(x => Object.assign(migrateReminder(x), { id: uid() }));
   reminders = clean.concat(reminders);
   save();
   render();
@@ -2285,6 +2310,7 @@ function syncSettingToggles() {
   document.getElementById('groupToggle').classList.toggle('on', settings.groupCompleted);
   document.getElementById('confirmDelToggle').classList.toggle('on', settings.confirmDelete);
   document.getElementById('spellcheckToggle').classList.toggle('on', settings.spellcheck);
+  document.querySelectorAll('.toggle[role=switch]').forEach(t => t.setAttribute('aria-checked', t.classList.contains('on')));
 }
 
 /* =========================================================
@@ -2506,6 +2532,11 @@ function init() {
     saveSettings(); syncSettingToggles(); renderDetail();
   });
 
+  // Settings switches are focusable: Space / Enter flips them like a click
+  document.querySelectorAll('.toggle[role=switch]').forEach(t => t.addEventListener('keydown', e => {
+    if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); t.click(); }
+  }));
+
   // Wipe
   const openWipe = () => showOverlay('wipeOverlay');
   document.getElementById('wipeBtn').addEventListener('click', openWipe);
@@ -2572,6 +2603,37 @@ function init() {
   // Persist on unload (belt & suspenders)
   window.addEventListener('beforeunload', save);
 }
+
+/* Dev tool: press the backtick key (`) to open the automatic UX tester (devtest.js, loaded on first use; normal use pays nothing). */
+(() => {
+  let loading = false;
+  const api = () => ({
+    get reminders() { return reminders; }, set reminders(v) { reminders = v; },
+    get settings() { return settings; }, set settings(v) { settings = v; },
+    get selectedId() { return selectedId; }, set selectedId(v) { selectedId = v; },
+    STORE_KEY, SETTINGS_KEY, THEMES, URGENCIES, REPEATS, DUE_PRESETS, END_PRESETS, SNOOZE, ICONS, HELP,
+    save, saveSettings, load, render, renderList, renderDetail, renderThemeGrid, applySettings, syncSettingToggles,
+    addReminder, selectReminder, toggleComplete, doDelete, performReorder, importTxt, exportTxt,
+    parseNaturalLanguage, parseDuration, detectDatetime, detectRepeat, detectEnd, detectSnooze,
+    fmtDate, escapeHtml, isRepeating, newReminder, uid, toast,
+  });
+  addEventListener('keydown', (e) => {
+    if (e.key !== '`' || !e.isTrusted || e.ctrlKey || e.metaKey || e.altKey) return;
+    const t = e.target; if (t && (t.tagName === 'TEXTAREA' || t.isContentEditable || (t.tagName === 'INPUT' && /^(text|number|search|email|url|tel|password)$/.test(t.type)))) return;
+    e.preventDefault(); e.stopPropagation(); window.__devApi = api();
+    if (window.DevTest) { window.DevTest.toggle(); return; }
+    if (loading) return; loading = true;
+    const sc = document.createElement('script'); sc.src = 'devtest.js?v=1'; sc.onload = () => { loading = false; window.DevTest && window.DevTest.toggle(true); }; sc.onerror = () => { loading = false; toast('Could not load the dev tool (devtest.js)'); };
+    document.head.appendChild(sc);
+  }, true);
+  /* ?dev=quick | standard | thorough | problems | free opens the tester and starts that run by itself */
+  const auto = /[?&]dev=(quick|standard|thorough|problems|free)\b/.exec(location.search);
+  if (auto) setTimeout(() => {
+    window.__devApi = api(); const sc = document.createElement('script'); sc.src = 'devtest.js?v=1';
+    sc.onload = () => { window.DevTest.toggle(true); const m = document.getElementById('dtMode'); if (m) { m.value = auto[1]; m.onchange && m.onchange(); } const go = document.querySelector('#devtest [data-a=start]'); if (go) go.click(); };
+    document.head.appendChild(sc);
+  }, 2500);
+})();
 
 document.addEventListener('DOMContentLoaded', init);
 </script>
