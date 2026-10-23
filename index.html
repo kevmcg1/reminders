@@ -997,6 +997,17 @@
 </div>
 
 <!-- DELETE ONE MODAL -->
+<div class="overlay" id="saveNoteOverlay">
+  <div class="modal">
+    <div class="modal-icon neutral"><i class="fa-solid fa-circle-info"></i></div>
+    <h2>Where your reminders live</h2>
+    <p>Reminders are saved by your cache. You can always clear out all reminders by clearing your cache any time.</p>
+    <div class="modal-actions">
+      <button class="btn btn-primary" id="saveNoteOk">Got it!</button>
+    </div>
+  </div>
+</div>
+
 <div class="overlay" id="delOverlay">
   <div class="modal">
     <div class="modal-icon danger"><i class="fa-solid fa-trash-can"></i></div>
@@ -1072,6 +1083,7 @@
 
 const STORE_KEY = 'reminders.app.v1';
 const SETTINGS_KEY = 'reminders.settings.v1';
+const SAVE_NOTE_KEY = 'reminders.saveNote.v1';   // set once the "saved by your cache" note has been shown
 
 const THEMES = [
   { id: 'midnight', name: 'Midnight', bg: '#16181f', accent: '#6d7cff' },
@@ -2091,7 +2103,15 @@ function showListPane() {
   document.getElementById('sidebar')?.classList.remove('mobile-hidden');
 }
 
+function maybeShowSaveNote(isFirst) {
+  if (!isFirst || (window.DevTest && window.DevTest.state && window.DevTest.state.running)) return;   // (the UX tester makes hundreds of reminders; it must not be stopped by the note)
+  try { if (localStorage.getItem(SAVE_NOTE_KEY)) return; localStorage.setItem(SAVE_NOTE_KEY, '1'); } catch(e) { return; }
+  showOverlay('saveNoteOverlay');
+  setTimeout(() => document.getElementById('saveNoteOk')?.focus(), 30);
+}
+
 function addReminder() {
+  const isFirst = reminders.length === 0;
   const r = newReminder();
   reminders.unshift(r);
   selectedId = r.id;
@@ -2099,6 +2119,7 @@ function addReminder() {
   render();
   showDetailPane();
   setTimeout(() => document.getElementById('d-title')?.focus(), 30);
+  maybeShowSaveNote(isFirst);
 }
 
 function selectReminder(id) {
@@ -2547,6 +2568,7 @@ function init() {
   });
 
   // Delete one
+  document.getElementById('saveNoteOk').addEventListener('click', () => { hideOverlay('saveNoteOverlay'); document.getElementById('d-title')?.focus(); });
   document.getElementById('delCancel').addEventListener('click', () => { pendingDeleteId = null; hideOverlay('delOverlay'); });
   document.getElementById('delConfirm').addEventListener('click', () => {
     if (pendingDeleteId) doDelete(pendingDeleteId);
