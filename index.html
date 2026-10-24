@@ -100,6 +100,7 @@
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
 
+  body { display: flex; flex-direction: column; height: 100vh; }
   html, body {
     height: 100%;
     font-family: var(--font);
@@ -123,7 +124,8 @@
   .app {
     display: grid;
     grid-template-columns: 320px 1fr;
-    height: 100vh;
+    flex: 1 1 auto;
+    min-height: 0;
     overflow: hidden;
   }
 
@@ -326,61 +328,33 @@
   }
   .sidebar-footer .icon-btn { flex: 1; }
 
-  .notif-status {
-    display: flex; align-items: center; gap: 11px;
-    margin: 0 12px; padding: 10px 12px;
-    background: var(--bg-elev-2); border: 1px solid var(--border);
-    border-radius: var(--radius-sm); cursor: pointer; text-align: left;
-    transition: var(--transition); color: var(--text);
-  }
-  .notif-status:hover { background: var(--bg-hover); border-color: var(--text-faint); }
-  .notif-status > i:first-child { font-size: 15px; color: var(--danger); flex-shrink: 0; }
-  .notif-status.on > i:first-child { color: #4ade80; }
-  .notif-text { flex: 1; display: flex; flex-direction: column; min-width: 0; }
-  .notif-title { font-size: 13px; font-weight: 600; }
-  .notif-sub { font-size: 11.5px; color: var(--text-dim); }
-  .notif-chevron { font-size: 11px; color: var(--text-faint); flex-shrink: 0; }
-  .notif-status.on .notif-chevron { opacity: 0.5; }
 
-  .notif-steps { list-style: none; margin: 20px 0; padding: 0; display: flex; flex-direction: column; gap: 12px; }
-  .notif-steps li { display: flex; align-items: flex-start; gap: 12px; font-size: 14px; color: var(--text-dim); line-height: 1.5; }
-  .notif-steps strong, .notif-steps em { color: var(--text); font-weight: 600; font-style: normal; }
-  .step-n {
-    flex-shrink: 0; width: 22px; height: 22px; border-radius: 50%;
-    background: var(--accent-soft); color: var(--accent);
-    display: flex; align-items: center; justify-content: center;
-    font-size: 12px; font-weight: 700;
-  }
-  .notif-blocked {
-    display: none; gap: 11px; align-items: flex-start;
-    background: rgba(255,95,109,0.09); border: 1px solid rgba(255,95,109,0.25);
-    border-radius: var(--radius-sm); padding: 13px 15px; margin-bottom: 18px;
-    font-size: 13px; color: var(--text-dim); line-height: 1.55;
-  }
-  .notif-blocked.show { display: flex; }
-  .notif-blocked > i { color: var(--danger); margin-top: 2px; }
-  .notif-blocked strong { color: var(--text); }
-  .notif-note { font-size: 12.5px; color: var(--text-faint); margin-bottom: 18px; min-height: 0; }
+  /* ============ SITE HEADER + FOOTER (the same two bars as Shop Tool Sim) ============ */
+  .site-head { flex: none; display: flex; justify-content: center; align-items: center; padding: 6px 14px; background: var(--bg-elev); border-bottom: 1px solid var(--border); font-size: 12.5px; }
+  .site-head a, .foot a { color: var(--text); text-decoration: none; border-bottom: 1px solid transparent; }
+  .site-head a:hover, .site-head a:focus-visible, .foot a:hover, .foot a:focus-visible { color: var(--accent); border-bottom-color: currentColor; outline: none; }
+  .foot { flex: none; display: flex; flex-wrap: wrap; align-items: center; justify-content: center; text-align: center; gap: 6px 18px; padding: 8px 14px; background: var(--bg-elev); border-top: 1px solid var(--border); font-size: 12px; color: var(--text-dim); }
+  @media (max-width: 640px) { .foot { padding: 8px 10px; } }
 
-  .notif-state {
-    display: flex; align-items: center; gap: 9px;
-    padding: 12px 14px; border-radius: var(--radius-sm);
-    background: var(--bg-elev-2); border: 1px solid var(--border);
-    font-size: 14px; font-weight: 600; margin-bottom: 18px;
-  }
-  .ns-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--text-faint); flex-shrink: 0; }
-  .ns-dot.on { background: #4ade80; box-shadow: 0 0 8px #4ade80; }
-  .ns-dot.off { background: var(--danger); }
-  .notif-state .ns-sub { color: var(--text-dim); font-weight: 400; }
-  .notif-tip {
-    display: flex; gap: 11px; align-items: flex-start;
-    background: var(--accent-soft); border-radius: var(--radius-sm);
-    padding: 12px 14px; margin-bottom: 18px;
-    font-size: 13px; line-height: 1.55; color: var(--text-dim);
-  }
-  .notif-tip > i { color: var(--accent); margin-top: 2px; }
-  .notif-tip strong { color: var(--text); font-weight: 600; }
-  .notif-tip.hide { display: none; }
+  /* ============ LOGO (the Shop Tool Sim title: Bebas Neue, yellow brackets) ============ */
+  .logo-mark { margin: 0; font-family: 'Bebas Neue', var(--font); font-size: 2rem; font-weight: 400; letter-spacing: .055em; line-height: .9; color: var(--text); display: flex; align-items: center; gap: .28em; text-transform: none; }
+  .logo-stack { display: flex; flex-direction: column; align-items: center; }
+  .logo-top { display: block; white-space: nowrap; }
+  .brand-col { min-width: 0; }
+  .logo-brk { display: block; font-size: 1.55em; line-height: .78; color: #e8c547; opacity: .85; }
+
+  /* ============ CACHE NOTE ============ */
+  #saveNoteOverlay .modal { max-height: calc(100% - 24px); overflow-y: auto; }
+  .cache-help[hidden] { display: none; }
+  .cache-help { margin: -6px 0 20px; }
+  .cache-help-title { font-size: 12.5px; color: var(--text-dim); margin-bottom: 10px; line-height: 1.5; }
+  .browser-grid { display: flex; flex-direction: column; gap: 8px; }
+  .browser-btn { display: flex; align-items: center; gap: 12px; padding: 10px 12px; background: var(--bg-elev-2); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text); text-decoration: none; font-size: 14px; font-weight: 500; transition: var(--transition); }
+  .browser-btn:hover, .browser-btn:focus-visible { border-color: var(--accent); background: var(--bg-hover); outline: none; }
+  .browser-btn svg { width: 22px; height: 22px; flex-shrink: 0; }
+  .browser-btn span { flex: 1; }
+  .browser-btn > i { font-size: 11px; color: var(--text-faint); }
+  .cache-help-tip { font-size: 12px; color: var(--text-faint); margin-top: 10px; line-height: 1.5; }
 
   .header-actions { display: flex; gap: 4px; }
   .modal kbd {
@@ -588,21 +562,6 @@
     font-size: 12px; transition: var(--transition);
   }
   .field-clear:hover { background: rgba(255,95,109,0.12); border-color: rgba(255,95,109,0.4); color: var(--danger); }
-
-  .notif-warning { display: none; }
-  .notif-warning.show {
-    display: flex; align-items: center; gap: 13px;
-    background: rgba(255,95,109,0.12); border: 1px solid rgba(255,95,109,0.45);
-    border-radius: var(--radius); padding: 14px 16px; margin-bottom: 24px; cursor: pointer;
-  }
-  .notif-warning > i { color: var(--danger); font-size: 18px; flex-shrink: 0; }
-  .notif-warning div { flex: 1; font-size: 13px; color: var(--text-dim); line-height: 1.5; }
-  .notif-warning strong { color: var(--text); }
-  .nw-btn {
-    background: var(--danger); color: #fff; border: none; border-radius: 8px;
-    padding: 8px 14px; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; flex-shrink: 0;
-  }
-  .nw-btn:hover { filter: brightness(1.1); }
 
   .field-icon {
     width: 30px; height: 30px; border-radius: var(--radius-sm);
@@ -843,7 +802,7 @@
     .sidebar { border-right: none; }
     .sidebar.mobile-hidden { display: none; }
     .main.mobile-hidden { display: none; }
-    .main { height: 100vh; }
+    .main { height: 100%; }
 
     .detail { padding: 20px 16px 64px; max-width: 100%; }
     .detail-back { display: inline-flex; }
@@ -886,30 +845,25 @@
 </head>
 <body data-theme="midnight" data-density="cozy">
 
+<header class="site-head" role="banner"><a href="https://kevmcg1.github.io/portfolio" target="_top" aria-label="Back to the portfolio at kevmcg1.github.io">KEVMCG1.GITHUB.IO</a></header>
+
 <div class="app">
   <!-- SIDEBAR -->
   <aside class="sidebar" id="sidebar">
     <div class="sidebar-header">
-      <div class="brand"><i class="fa-solid fa-bell"></i> Reminders</div>
+      <div class="brand-col"><h1 class="brand logo-mark" aria-label="Reminders"><span class="logo-brk" aria-hidden="true">[</span><span class="logo-stack" aria-hidden="true"><span class="logo-top">Reminders</span></span><span class="logo-brk" aria-hidden="true">]</span></h1></div>
       <div class="header-actions">
         <button class="icon-btn" id="helpBtn" title="How to type"><i class="fa-regular fa-circle-question"></i></button>
         <button class="icon-btn" id="settingsBtn" title="Settings"><i class="fa-solid fa-sliders"></i></button>
       </div>
     </div>
+    <div class="guide-row"><button id="guideBtn" type="button" aria-label="How do I use this? A guided walkthrough of making a reminder"><span class="gd-q" aria-hidden="true">?</span><span>How do I use this?</span></button></div>
     <button class="add-btn" id="addBtn"><i class="fa-solid fa-plus"></i> New Reminder</button>
     <div class="search-wrap">
       <i class="fa-solid fa-magnifying-glass"></i>
       <input type="text" id="search" placeholder="Search reminders...">
     </div>
     <div class="list-scroll" id="listScroll"></div>
-    <button class="notif-status" id="notifStatus">
-      <i class="fa-solid fa-bell-slash"></i>
-      <div class="notif-text">
-        <span class="notif-title">No notifications on</span>
-        <span class="notif-sub">Click to change this</span>
-      </div>
-      <i class="fa-solid fa-chevron-right notif-chevron"></i>
-    </button>
     <div class="sidebar-footer">
       <button class="icon-btn" id="importBtn" title="Import from file"><i class="fa-solid fa-file-import"></i></button>
       <button class="icon-btn" id="exportBtn" title="Export to file"><i class="fa-solid fa-file-export"></i></button>
@@ -939,6 +893,8 @@
     </div>
   </div>
 </div>
+
+<footer class="foot"><span>Reminders is released under GitHub’s <a href="https://github.com/github/choosealicense.com/blob/gh-pages/_licenses/cc0-1.0.txt" target="_blank" rel="license noopener noreferrer">Creative Commons Zero v1.0 Universal</a> license. All rights reserved.</span></footer>
 
 <!-- SETTINGS MODAL -->
 <div class="overlay" id="settingsOverlay">
@@ -1002,11 +958,25 @@
     <div class="modal-icon neutral"><i class="fa-solid fa-circle-info"></i></div>
     <h2>Where your reminders live</h2>
     <p>Reminders are saved by your cache. You can always clear out all reminders by clearing your cache any time.</p>
+    <div class="cache-help" id="cacheHelp" hidden>
+      <div class="cache-help-title">Pick your browser. Each button opens that browser’s own help page.</div>
+      <div class="browser-grid">
+        <a class="browser-btn" href="https://support.microsoft.com/en-us/edge/view-and-delete-browser-history-in-microsoft-edge" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="#0078D4" d="M21.86 17.86q.14 0 .25.12.1.13.1.25t-.11.33l-.32.46-.43.53-.44.5q-.21.25-.38.42l-.22.23q-.58.53-1.34 1.04-.76.51-1.6.91-.86.4-1.74.64t-1.67.24q-.9 0-1.69-.28-.8-.28-1.48-.78-.68-.5-1.22-1.17-.53-.66-.92-1.44-.38-.77-.58-1.6-.2-.83-.2-1.67 0-1 .32-1.96.33-.97.87-1.8.14.95.55 1.77.41.82 1.02 1.5.6.68 1.38 1.21.78.54 1.64.9.86.36 1.77.56.92.2 1.8.2 1.12 0 2.18-.24 1.06-.23 2.06-.72l.2-.1.2-.05zm-15.5-1.27q0 1.1.27 2.15.27 1.06.78 2.03.51.96 1.24 1.77.74.82 1.66 1.4-1.47-.2-2.8-.74-1.33-.55-2.48-1.37-1.15-.83-2.08-1.9-.92-1.07-1.58-2.33T.36 14.94Q0 13.54 0 12.06q0-.81.32-1.49.31-.68.83-1.23.53-.55 1.2-.96.66-.4 1.35-.66.74-.27 1.5-.39.78-.12 1.55-.12.7 0 1.42.1.72.12 1.4.35.68.23 1.32.57.63.35 1.16.83-.35 0-.7.07-.33.07-.65.23v-.02q-.63.28-1.2.74-.57.46-1.05 1.04-.48.58-.87 1.26-.38.67-.65 1.39-.27.71-.42 1.44-.15.72-.15 1.38zM11.96.06q1.7 0 3.33.39 1.63.38 3.07 1.15 1.43.77 2.62 1.93 1.18 1.16 1.98 2.7.49.94.76 1.96.28 1 .28 2.08 0 .89-.23 1.7-.24.8-.69 1.48-.45.68-1.1 1.22-.64.53-1.45.88-.54.24-1.11.36-.58.13-1.16.13-.42 0-.97-.03-.54-.03-1.1-.12-.55-.1-1.05-.28-.5-.19-.84-.5-.12-.09-.23-.24-.1-.16-.1-.33 0-.15.16-.35.16-.2.35-.5.2-.28.36-.68.16-.4.16-.95 0-1.06-.4-1.96-.4-.91-1.06-1.64-.66-.74-1.52-1.28-.86-.55-1.79-.89-.84-.3-1.72-.44-.87-.14-1.76-.14-1.55 0-3.06.45T.94 7.55q.71-1.74 1.81-3.13 1.1-1.38 2.52-2.35Q6.68 1.1 8.37.58q1.7-.52 3.58-.52Z"/></svg><span>Microsoft Edge</span><i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i></a>
+        <a class="browser-btn" href="https://support.google.com/chrome/answer/2392709" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="#4285F4" d="M12 0C8.21 0 4.831 1.757 2.632 4.501l3.953 6.848A5.454 5.454 0 0 1 12 6.545h10.691A12 12 0 0 0 12 0zM1.931 5.47A11.943 11.943 0 0 0 0 12c0 6.012 4.42 10.991 10.189 11.864l3.953-6.847a5.45 5.45 0 0 1-6.865-2.29zm13.342 2.166a5.446 5.446 0 0 1 1.45 7.09l.002.001h-.002l-5.344 9.257c.206.01.413.016.621.016 6.627 0 12-5.373 12-12 0-1.54-.29-3.011-.818-4.364zM12 16.364a4.364 4.364 0 1 1 0-8.728 4.364 4.364 0 0 1 0 8.728Z"/></svg><span>Google Chrome</span><i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i></a>
+        <a class="browser-btn" href="https://support.brave.com/hc/en-us/articles/360048833872-How-Do-I-Clear-Cookies-And-Site-Data-In-Brave" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="#FB542B" d="M15.68 0l2.096 2.38s1.84-.512 2.709.358c.868.87 1.584 1.638 1.584 1.638l-.562 1.381.715 2.047s-2.104 7.98-2.35 8.955c-.486 1.919-.818 2.66-2.198 3.633-1.38.972-3.884 2.66-4.293 2.916-.409.256-.92.692-1.38.692-.46 0-.97-.436-1.38-.692a185.796 185.796 0 01-4.293-2.916c-1.38-.973-1.712-1.714-2.197-3.633-.247-.975-2.351-8.955-2.351-8.955l.715-2.047-.562-1.381s.716-.768 1.585-1.638c.868-.87 2.708-.358 2.708-.358L8.321 0h7.36zm-3.679 14.936c-.14 0-1.038.317-1.758.69-.72.373-1.242.637-1.409.742-.167.104-.065.301.087.409.152.107 2.194 1.69 2.393 1.866.198.175.489.464.687.464.198 0 .49-.29.688-.464.198-.175 2.24-1.759 2.392-1.866.152-.108.254-.305.087-.41-.167-.104-.689-.368-1.41-.741-.72-.373-1.617-.69-1.757-.69zm0-11.278s-.409.001-1.022.206-1.278.46-1.584.46c-.307 0-2.581-.434-2.581-.434S4.119 7.152 4.119 7.849c0 .697.339.881.68 1.243l2.02 2.149c.192.203.59.511.356 1.066-.235.555-.58 1.26-.196 1.977.384.716 1.042 1.194 1.464 1.115.421-.08 1.412-.598 1.776-.834.364-.237 1.518-1.19 1.518-1.554 0-.365-1.193-1.02-1.413-1.168-.22-.15-1.226-.725-1.247-.95-.02-.227-.012-.293.284-.851.297-.559.831-1.304.742-1.8-.089-.495-.95-.753-1.565-.986-.615-.232-1.799-.671-1.947-.74-.148-.068-.11-.133.339-.175.448-.043 1.719-.212 2.292-.052.573.16 1.552.403 1.632.532.079.13.149.134.067.579-.081.445-.5 2.581-.541 2.96-.04.38-.12.63.288.724.409.094 1.097.256 1.333.256s.924-.162 1.333-.256c.408-.093.329-.344.288-.723-.04-.38-.46-2.516-.541-2.961-.082-.445-.012-.45.067-.579.08-.129 1.059-.372 1.632-.532.573-.16 1.845.009 2.292.052.449.042.487.107.339.175-.148.069-1.332.508-1.947.74-.615.233-1.476.49-1.565.986-.09.496.445 1.241.742 1.8.297.558.304.624.284.85-.02.226-1.026.802-1.247.95-.22.15-1.413.804-1.413 1.169 0 .364 1.154 1.317 1.518 1.554.364.236 1.355.755 1.776.834.422.079 1.08-.4 1.464-1.115.384-.716.039-1.422-.195-1.977-.235-.555.163-.863.355-1.066l2.02-2.149c.341-.362.68-.546.68-1.243 0-.697-2.695-3.96-2.695-3.96s-2.274.436-2.58.436c-.307 0-.972-.256-1.585-.461-.613-.205-1.022-.206-1.022-.206z"/></svg><span>Brave</span><i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i></a>
+        <a class="browser-btn" href="https://support.mozilla.org/en-US/kb/clear-cookies-and-site-data-firefox" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="#FF7139" d="M8.824 7.287c.008 0 .004 0 0 0zm-2.8-1.4c.006 0 .003 0 0 0zm16.754 2.161c-.505-1.215-1.53-2.528-2.333-2.943.654 1.283 1.033 2.57 1.177 3.53l.002.02c-1.314-3.278-3.544-4.6-5.366-7.477-.091-.147-.184-.292-.273-.446a3.545 3.545 0 01-.13-.24 2.118 2.118 0 01-.172-.46.03.03 0 00-.027-.03.038.038 0 00-.021 0l-.006.001a.037.037 0 00-.01.005L15.624 0c-2.585 1.515-3.657 4.168-3.932 5.856a6.197 6.197 0 00-2.305.587.297.297 0 00-.147.37c.057.162.24.24.396.17a5.622 5.622 0 012.008-.523l.067-.005a5.847 5.847 0 011.957.222l.095.03a5.816 5.816 0 01.616.228c.08.036.16.073.238.112l.107.055a5.835 5.835 0 01.368.211 5.953 5.953 0 012.034 2.104c-.62-.437-1.733-.868-2.803-.681 4.183 2.09 3.06 9.292-2.737 9.02a5.164 5.164 0 01-1.513-.292 4.42 4.42 0 01-.538-.232c-1.42-.735-2.593-2.121-2.74-3.806 0 0 .537-2 3.845-2 .357 0 1.38-.998 1.398-1.287-.005-.095-2.029-.9-2.817-1.677-.422-.416-.622-.616-.8-.767a3.47 3.47 0 00-.301-.227 5.388 5.388 0 01-.032-2.842c-1.195.544-2.124 1.403-2.8 2.163h-.006c-.46-.584-.428-2.51-.402-2.913-.006-.025-.343.176-.389.206-.406.29-.787.616-1.136.974-.397.403-.76.839-1.085 1.303a9.816 9.816 0 00-1.562 3.52c-.003.013-.11.487-.19 1.073-.013.09-.026.181-.037.272a7.8 7.8 0 00-.069.667l-.002.034-.023.387-.001.06C.386 18.795 5.593 24 12.016 24c5.752 0 10.527-4.176 11.463-9.661.02-.149.035-.298.052-.448.232-1.994-.025-4.09-.753-5.844z"/></svg><span>Firefox</span><i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i></a>
+        <a class="browser-btn" href="https://help.opera.com/en/latest/security-and-privacy/" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="#FA1E4E" d="M24 12.01c0 3.412-1.462 6.674-4.013 8.943A12 12 0 0 1 11.992 24c-.178 0-.385-.019-.563-.019C5.016 23.681 0 18.403 0 11.991 0 5.37 5.372 0 11.99 0h.038c2.944 0 5.775 1.087 7.96 3.047A12.04 12.04 0 0 1 24 12.009zm-9.14 10.443c-2.729-.056-5.279-1.397-7.041-3.684-1.388-1.64-2.203-4.013-2.269-6.516v-.544c.047-2.521.881-4.893 2.269-6.534 1.744-2.269 4.294-3.61 7.012-3.666a10.67 10.67 0 0 0-2.784-.384h-.038c-5.99 0-10.865 4.894-10.865 10.866 0 5.812 4.528 10.584 10.34 10.847a10.087 10.087 0 0 0 3.375-.385zm7.996-10.444c0-3.065-1.303-5.99-3.59-8.053a7.69 7.69 0 0 0-4.228-1.284c-2.447 0-4.754 1.181-6.357 3.244-1.247 1.462-1.969 3.59-2.025 5.83v.526c.056 2.25.778 4.369 2.006 5.812l.02.02c1.602 2.071 3.909 3.252 6.355 3.252a7.69 7.69 0 0 0 4.229-1.284 10.894 10.894 0 0 0 3.59-8.063zm-3.75 0c0 4.05-2.184 7.341-4.912 7.585 2.128-1.388 3.61-4.257 3.61-7.585 0-3.328-1.463-6.197-3.61-7.575 2.728.244 4.912 3.525 4.912 7.575z"/></svg><span>Opera GX</span><i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i></a>
+      </div>
+      <div class="cache-help-tip">When it asks what to clear, include “Cookies and other site data”.</div>
+    </div>
     <div class="modal-actions">
+      <button class="btn" id="cacheHelpBtn" aria-expanded="false" aria-controls="cacheHelp"><i class="fa-solid fa-circle-question"></i> How do I clear my cache?</button>
       <button class="btn btn-primary" id="saveNoteOk">Got it!</button>
     </div>
   </div>
 </div>
+
+<div class="overlay" id="changelogOverlay"><div class="modal wide"></div></div>
 
 <div class="overlay" id="delOverlay">
   <div class="modal">
@@ -1016,42 +986,6 @@
     <div class="modal-actions">
       <button class="btn" id="delCancel">Cancel</button>
       <button class="btn btn-danger" id="delConfirm">Delete</button>
-    </div>
-  </div>
-</div>
-
-<!-- NOTIFICATION TUTORIAL MODAL -->
-<div class="overlay" id="notifOverlay">
-  <div class="modal wide" style="position: relative;">
-    <div class="modal-head">
-      <h2>Notifications</h2>
-      <button class="icon-btn" id="notifClose" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
-    </div>
-    <div class="notif-state" id="notifState"></div>
-
-    <p id="notifIntro"></p>
-
-    <div class="notif-tip" id="notifTip">
-      <i class="fa-solid fa-lightbulb"></i>
-      <div>Recommended: when your browser asks, choose to <strong>remember the decision</strong> — look for &ldquo;Remember this decision&rdquo; or &ldquo;until I close this site&rdquo; — so you won't be prompted again.</div>
-    </div>
-
-    <ol class="notif-steps">
-      <li><span class="step-n">1</span> Click <strong>Enable notifications</strong> below.</li>
-      <li><span class="step-n">2</span> Your browser will ask — choose <strong>Allow</strong>, and remember the decision.</li>
-      <li><span class="step-n">3</span> The sidebar status switches to <em>Notifications on</em>.</li>
-    </ol>
-
-    <div class="notif-blocked" id="notifBlocked">
-      <i class="fa-solid fa-circle-info"></i>
-      <div id="notifBlockedText"></div>
-    </div>
-
-    <div class="notif-note" id="notifNote"></div>
-
-    <div class="modal-actions">
-      <button class="btn" id="notifDismiss">Close</button>
-      <button class="btn btn-primary" id="notifEnable"><i class="fa-solid fa-bell"></i> Enable notifications</button>
     </div>
   </div>
 </div>
@@ -1144,7 +1078,7 @@ function isPresetSnooze(v) { return SNOOZE.includes(v); }
 
 /* ---------- State ---------- */
 let reminders = [];
-let settings = { theme: 'midnight', density: 'cozy', groupCompleted: true, completedCollapsed: false, confirmDelete: false, spellcheck: true, notifGrantedAt: null };
+let settings = { theme: 'midnight', density: 'cozy', groupCompleted: true, completedCollapsed: false, confirmDelete: false, spellcheck: true };
 let selectedId = null;
 let pendingDeleteId = null;
 let dragId = null;
@@ -1689,7 +1623,6 @@ ${escapeHtml(r.notes)}</textarea>
       </div>
     </div>
 
-    <div class="notif-warning" id="notif-warning"></div>
 
     <div class="group-title">Schedule</div>
     <div class="field-card">
@@ -1815,25 +1748,6 @@ function renderIconPicker(r, gridOpen) {
     </div>`;
 }
 
-// Shows a prominent warning when a reminder has a schedule but notifications are off.
-function updateNotifWarning(r) {
-  const el = document.getElementById('notif-warning');
-  if (!el) return;
-  const scheduled = !!r.due || isRepeating(r.repeat);
-  if (scheduled && notifPermission() !== 'granted') {
-    el.className = 'notif-warning show';
-    el.innerHTML =
-      `<i class="fa-solid fa-triangle-exclamation"></i>` +
-      `<div><strong>Notifications are off.</strong> You won't be alerted for this scheduled reminder.</div>` +
-      `<button class="nw-btn" type="button">Turn on</button>`;
-    el.onclick = () => { refreshNotifModal(); showOverlay('notifOverlay'); };
-  } else {
-    el.className = 'notif-warning';
-    el.innerHTML = '';
-    el.onclick = null;
-  }
-}
-
 // Renders just the checklist items + progress (so toggling doesn't reflow the whole detail).
 function renderChecklist(r) {
   const box = document.getElementById('cl-items');
@@ -1908,7 +1822,6 @@ function wireDetail(r) {
   wireField($('d-notes'), $('nlp-hint-notes'), 'notes');
   autoGrow($('d-notes'));
   updateFullTitle();
-  updateNotifWarning(r);
 
   // Red "clear" buttons — reset a single setting to its default
   document.querySelectorAll('#detail .field-clear').forEach(btn => {
@@ -1933,11 +1846,11 @@ function wireDetail(r) {
   const dueText = $('d-due-text'), duePreset = $('d-due-preset'), duePick = $('d-due');
   function commitDueText() {
     const v = dueText.value.trim();
-    if (v === '') { r.due = ''; duePick.value = ''; duePreset.value = '__custom'; save(); renderList(); updateNotifWarning(r); return; }
+    if (v === '') { r.due = ''; duePick.value = ''; duePreset.value = '__custom'; save(); renderList(); return; }
     const parsed = parseNaturalLanguage(v);
     if (parsed.due) { r.due = parsed.due; duePick.value = r.due; }
     duePreset.value = DUE_PRESETS.includes(v) ? v : '__custom';
-    save(); renderList(); updateNotifWarning(r);
+    save(); renderList();
   }
   dueText.addEventListener('input', () => updateDetect('datetime', dueText.value));
   dueText.addEventListener('change', commitDueText);
@@ -1948,7 +1861,7 @@ function wireDetail(r) {
     if (parsed.due) { r.due = parsed.due; duePick.value = r.due; }
     dueText.value = e.target.value;
     updateDetect('datetime', dueText.value);
-    save(); renderList(); updateNotifWarning(r);
+    save(); renderList();
   });
   duePick.addEventListener('change', e => {
     // the picker lets a person type a year with more than 4 digits; only YYYY-MM-DDTHH:MM is stored
@@ -1957,7 +1870,7 @@ function wireDetail(r) {
     dueText.value = r.due ? fmtDate(r.due) : '';
     duePreset.value = '__custom';
     updateDetect('datetime', dueText.value);
-    save(); renderList(); updateNotifWarning(r);
+    save(); renderList();
   });
 
   // --- Repeat combo: text + preset dropdown mirror each other ---
@@ -1967,7 +1880,7 @@ function wireDetail(r) {
     repeatPreset.value = isPresetRepeat(r.repeat) ? r.repeat : '__custom';
     toggleRepeatRows();
     updateDetect('repeat', r.repeat);
-    save(); renderList(); updateNotifWarning(r);
+    save(); renderList();
   });
   repeatPreset.addEventListener('change', e => {
     if (e.target.value === '__custom') return;
@@ -1975,7 +1888,7 @@ function wireDetail(r) {
     repeatInput.value = r.repeat;
     toggleRepeatRows();
     updateDetect('repeat', r.repeat);
-    save(); renderList(); updateNotifWarning(r);
+    save(); renderList();
   });
 
   // --- End repeat combo: text + preset dropdown ---
@@ -2104,7 +2017,7 @@ function showListPane() {
 }
 
 function maybeShowSaveNote(isFirst) {
-  if (!isFirst || (window.DevTest && window.DevTest.state && window.DevTest.state.running)) return;   // (the UX tester makes hundreds of reminders; it must not be stopped by the note)
+  if (!isFirst || (window.DevTest && window.DevTest.state && window.DevTest.state.running && !window.DevTest.state.noteOn)) return;   // (the UX tester makes hundreds of reminders; it must not be stopped by the note)
   try { if (localStorage.getItem(SAVE_NOTE_KEY)) return; localStorage.setItem(SAVE_NOTE_KEY, '1'); } catch(e) { return; }
   showOverlay('saveNoteOverlay');
   setTimeout(() => document.getElementById('saveNoteOk')?.focus(), 30);
@@ -2340,159 +2253,6 @@ function syncSettingToggles() {
 function showOverlay(id) { document.getElementById(id).classList.add('show'); }
 function hideOverlay(id) { document.getElementById(id).classList.remove('show'); }
 
-/* =========================================================
-   Notifications: status pill + device-aware tutorial
-   ========================================================= */
-let deviceInfo = { name: 'your browser', os: 'your device', mobile: false };
-
-// Detect OS + browser (Brave/Opera GX/Opera/Edge/DuckDuckGo/Samsung/Vivaldi/
-// Firefox/Chrome/Safari…). Some checks (Brave) are async.
-async function detectDevice() {
-  const ua = navigator.userAgent || '';
-  const brands = ((navigator.userAgentData && navigator.userAgentData.brands) || []).map(b => b.brand).join(' | ');
-  let os = 'your device';
-  if (/windows/i.test(ua)) os = 'Windows';
-  else if (/android/i.test(ua)) os = 'Android';
-  else if (/iphone|ipad|ipod/i.test(ua)) os = 'iOS';
-  else if (/cros/i.test(ua)) os = 'ChromeOS';
-  else if (/mac os x|macintosh/i.test(ua)) os = 'macOS';
-  else if (/linux/i.test(ua)) os = 'Linux';
-  const mobile = /Mobi|Android|iPhone|iPad|iPod/i.test(ua) || !!(navigator.userAgentData && navigator.userAgentData.mobile);
-
-  let name = 'your browser';
-  let brave = false;
-  try { if (navigator.brave && navigator.brave.isBrave) brave = await navigator.brave.isBrave(); } catch (e) {}
-  if (brave) name = 'Brave';
-  else if (/OPGX|OPX\//i.test(ua)) name = 'Opera GX';
-  else if (/OPR\//i.test(ua) || /\bopera\b/i.test(brands)) name = (/GX/i.test(ua) || /GX/i.test(brands)) ? 'Opera GX' : 'Opera';
-  else if (/edg(a|ios)?\//i.test(ua) || /\bedge\b/i.test(brands)) name = 'Edge';
-  else if (/duckduckgo|ddg/i.test(ua)) name = 'DuckDuckGo';
-  else if (/samsungbrowser/i.test(ua)) name = 'Samsung Internet';
-  else if (/vivaldi/i.test(ua)) name = 'Vivaldi';
-  else if (/yabrowser/i.test(ua)) name = 'Yandex';
-  else if (/firefox|fxios/i.test(ua)) name = 'Firefox';
-  else if (/chrome|crios|chromium/i.test(ua) || /chrom/i.test(brands)) name = 'Chrome';
-  else if (/safari/i.test(ua)) name = 'Safari';
-  deviceInfo = { name, os, mobile };
-  if (document.getElementById('notifOverlay').classList.contains('show')) refreshNotifModal();
-}
-
-// How to un-block, tailored per browser / device.
-function browserHelp() {
-  const { name, mobile } = deviceInfo;
-  if (mobile) {
-    return `Open your device <strong>Settings &rsaquo; Apps &rsaquo; ${escapeHtml(name)} &rsaquo; Notifications</strong> (or the site permissions via the browser menu &rsaquo; <strong>Site settings &rsaquo; Notifications</strong>), allow them, then reload.`;
-  }
-  switch (name) {
-    case 'Firefox':
-      return `Click the <i class="fa-solid fa-lock"></i> padlock at the left of the address bar, find <strong>Send Notifications</strong> and clear the <strong>Blocked</strong> state, then reload.`;
-    case 'Safari':
-      return `Open <strong>Safari &rsaquo; Settings &rsaquo; Websites &rsaquo; Notifications</strong>, find this site and set it to <strong>Allow</strong>.`;
-    case 'Brave':
-      return `Brave is strict by default. Click the <i class="fa-solid fa-lock"></i> padlock &rsaquo; <strong>Site settings</strong> &rsaquo; <strong>Notifications</strong> &rsaquo; <strong>Allow</strong>, then reload. If needed, check the Brave <i class="fa-solid fa-shield-halved"></i> shield too.`;
-    case 'Opera':
-    case 'Opera GX':
-      return `Click the <i class="fa-solid fa-lock"></i> padlock at the left of the address bar &rsaquo; <strong>Site settings</strong> &rsaquo; <strong>Notifications</strong> &rsaquo; <strong>Allow</strong>, then reload.`;
-    default: // Chrome, Edge, DuckDuckGo, Vivaldi, Yandex, Chromium…
-      return `Click the <i class="fa-solid fa-lock"></i> (or <i class="fa-solid fa-sliders"></i>) icon at the left of the address bar &rsaquo; <strong>Site settings</strong> &rsaquo; <strong>Notifications</strong> &rsaquo; <strong>Allow</strong>, then reload.`;
-  }
-}
-
-function humanizeElapsed(ts) {
-  const s = Math.max(0, Math.floor((Date.now() - ts) / 1000));
-  const units = [['year', 31536000], ['month', 2592000], ['day', 86400], ['hour', 3600], ['minute', 60]];
-  for (const [u, secs] of units) { const v = Math.floor(s / secs); if (v >= 1) return `${v} ${u}${v !== 1 ? 's' : ''}`; }
-  return 'less than a minute';
-}
-
-function notifPermission() {
-  return ('Notification' in window) ? Notification.permission : 'unsupported';
-}
-// Record (or clear) when we first observed permission being granted, so we can
-// report how long notifications have been on.
-function syncNotifGrant() {
-  if (notifPermission() === 'granted') {
-    if (!settings.notifGrantedAt) { settings.notifGrantedAt = Date.now(); saveSettings(); }
-  } else if (settings.notifGrantedAt) {
-    settings.notifGrantedAt = null; saveSettings();
-  }
-}
-function updateNotifStatus() {
-  syncNotifGrant();
-  const el = document.getElementById('notifStatus');
-  if (!el) return;
-  const icon = el.querySelector('i');
-  const title = el.querySelector('.notif-title');
-  const sub = el.querySelector('.notif-sub');
-  if (notifPermission() === 'granted') {
-    el.classList.add('on');
-    icon.className = 'fa-solid fa-bell';
-    title.textContent = 'Notifications on';
-    sub.textContent = settings.notifGrantedAt ? `On for ${humanizeElapsed(settings.notifGrantedAt)}` : "You'll be reminded";
-  } else {
-    el.classList.remove('on');
-    icon.className = 'fa-solid fa-bell-slash';
-    title.textContent = 'No notifications on';
-    sub.textContent = 'Click to change this';
-  }
-}
-function refreshNotifModal() {
-  syncNotifGrant();
-  const perm = notifPermission();
-  const state = document.getElementById('notifState');
-  const intro = document.getElementById('notifIntro');
-  const tip = document.getElementById('notifTip');
-  const blocked = document.getElementById('notifBlocked');
-  const blockedText = document.getElementById('notifBlockedText');
-  const note = document.getElementById('notifNote');
-  const enableBtn = document.getElementById('notifEnable');
-
-  intro.innerHTML = `You're on <strong>${escapeHtml(deviceInfo.name)}</strong> &middot; <strong>${escapeHtml(deviceInfo.os)}</strong>. Turn on notifications so reminders can alert you when they're due — even when this tab is in the background.`;
-  blockedText.innerHTML = `<strong>Notifications are blocked in ${escapeHtml(deviceInfo.name)}.</strong> ` + browserHelp();
-
-  if (perm === 'granted') {
-    const since = settings.notifGrantedAt ? ` <span class="ns-sub">&middot; on for ${humanizeElapsed(settings.notifGrantedAt)}</span>` : '';
-    state.innerHTML = `<span class="ns-dot on"></span> Notifications are on${since}`;
-    blocked.classList.remove('show');
-    tip.classList.add('hide');
-    note.innerHTML = '<i class="fa-solid fa-circle-check" style="color:#4ade80"></i> You’re all set.';
-    enableBtn.disabled = true;
-  } else if (perm === 'denied') {
-    state.innerHTML = `<span class="ns-dot off"></span> Notifications are off <span class="ns-sub">&middot; blocked by the browser</span>`;
-    blocked.classList.add('show');
-    tip.classList.add('hide');
-    note.textContent = '';
-    enableBtn.disabled = true;
-  } else if (perm === 'unsupported') {
-    state.innerHTML = `<span class="ns-dot off"></span> Notifications aren’t supported here`;
-    blocked.classList.remove('show');
-    tip.classList.add('hide');
-    note.textContent = 'This browser does not support web notifications.';
-    enableBtn.disabled = true;
-  } else { // default — not decided yet
-    state.innerHTML = `<span class="ns-dot off"></span> Notifications are off <span class="ns-sub">&middot; not enabled yet</span>`;
-    blocked.classList.remove('show');
-    tip.classList.remove('hide');
-    note.textContent = location.protocol === 'file:'
-      ? 'Note: some browsers restrict notifications on files opened directly (file://). Serving over http/https is most reliable.'
-      : '';
-    enableBtn.disabled = false;
-  }
-}
-async function enableNotifications() {
-  if (!('Notification' in window)) return;
-  try {
-    const perm = await Notification.requestPermission();
-    updateNotifStatus();
-    refreshNotifModal();
-    if (perm === 'granted') {
-      try { new Notification('Reminders', { body: 'Notifications are now enabled.' }); } catch (e) {}
-      toast('Notifications enabled');
-      if (selectedId) renderDetail(); // clears the "notifications off" warning
-    }
-  } catch (e) {}
-}
-
 let toastTimer = null;
 function toast(msg) {
   const t = document.getElementById('toast');
@@ -2568,6 +2328,9 @@ function init() {
   });
 
   // Delete one
+  document.getElementById('cacheHelpBtn').addEventListener('click', () => {
+    const box = document.getElementById('cacheHelp'), b = document.getElementById('cacheHelpBtn'); box.hidden = !box.hidden; b.setAttribute('aria-expanded', String(!box.hidden));
+  });
   document.getElementById('saveNoteOk').addEventListener('click', () => { hideOverlay('saveNoteOverlay'); document.getElementById('d-title')?.focus(); });
   document.getElementById('delCancel').addEventListener('click', () => { pendingDeleteId = null; hideOverlay('delOverlay'); });
   document.getElementById('delConfirm').addEventListener('click', () => {
@@ -2603,13 +2366,6 @@ function init() {
     } else if (selectedId) { showDetailPane(); } else { showListPane(); }
   });
 
-  // Notifications
-  detectDevice();
-  updateNotifStatus();
-  document.getElementById('notifStatus').addEventListener('click', () => { refreshNotifModal(); showOverlay('notifOverlay'); });
-  document.getElementById('notifClose').addEventListener('click', () => hideOverlay('notifOverlay'));
-  document.getElementById('notifDismiss').addEventListener('click', () => hideOverlay('notifOverlay'));
-  document.getElementById('notifEnable').addEventListener('click', enableNotifications);
 
   // Close overlays on backdrop click
   document.querySelectorAll('.overlay').forEach(ov => {
@@ -2633,7 +2389,7 @@ function init() {
     get reminders() { return reminders; }, set reminders(v) { reminders = v; },
     get settings() { return settings; }, set settings(v) { settings = v; },
     get selectedId() { return selectedId; }, set selectedId(v) { selectedId = v; },
-    STORE_KEY, SETTINGS_KEY, THEMES, URGENCIES, REPEATS, DUE_PRESETS, END_PRESETS, SNOOZE, ICONS, HELP,
+    STORE_KEY, SETTINGS_KEY, SAVE_NOTE_KEY, THEMES, URGENCIES, REPEATS, DUE_PRESETS, END_PRESETS, SNOOZE, ICONS, HELP,
     save, saveSettings, load, render, renderList, renderDetail, renderThemeGrid, applySettings, syncSettingToggles,
     addReminder, selectReminder, toggleComplete, doDelete, performReorder, importTxt, exportTxt,
     parseNaturalLanguage, parseDuration, detectDatetime, detectRepeat, detectEnd, detectSnooze,
@@ -2659,5 +2415,8 @@ function init() {
 
 document.addEventListener('DOMContentLoaded', init);
 </script>
+<script src="version.js?v=1"></script>
+<script src="changelog.js?v=1"></script>
+<script src="guide.js?v=1"></script>
 </body>
 </html>
