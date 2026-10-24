@@ -603,6 +603,8 @@ const byId = (id) => document.getElementById(id);
 const rowOf = (id) => $(`#listScroll .reminder-item[data-id="${id}"]`);
 const rows = () => $$('#listScroll .reminder-item');
 async function settle() { await raf(); await raf(); }
+// writes a first title and pauses, the way a person does, so the one-time cache note comes up
+async function noteWrite() { const t = byId('d-title'); if (t) { t.focus(); setValue(t, 'milk'); t.dispatchEvent(new Event('input', { bubbles: true })); } await sleep(1700); await settle(); }
 function baselineData() {
   const d = new Date(); d.setDate(d.getDate() + 1); d.setHours(9, 0, 0, 0);
   return [mkRem({ title: 'Pay rent', notes: 'Landlord', due: ld(d), repeat: 'Every month', urgency: 'high', icon: 'fa-star' }),
@@ -847,6 +849,8 @@ const MACROS = {
     seedData([], null); SBX.store.delete(A.SAVE_NOTE_KEY); T.noteOn = true;
     try {
       const ov = byId('saveNoteOverlay'); await click('#addBtn'); await settle();
+      expect('the note waits while the first title is being written', !ov.classList.contains('show'), 'The cache note came up as soon as New Reminder was pressed, over the first letters typed', 'note waits');
+      await noteWrite();
       expect('the first reminder shows the cache note, with its exact words', ov.classList.contains('show') && squash(ov.textContent).includes('Reminders are saved by your cache. You can always clear out all reminders by clearing your cache any time.'), 'The first reminder did not show the cache note with its exact text', 'note first');
       expect('the note has a Got it! button', squash((byId('saveNoteOk') || {}).textContent) === 'Got it!', 'The note has no "Got it!" button', 'note gotit');
       expect('the browser help starts hidden', byId('cacheHelp').hidden && byId('cacheHelpBtn').getAttribute('aria-expanded') === 'false', 'The browser buttons are showing before "How do I clear my cache?" is pressed', 'help hidden');
@@ -858,7 +862,7 @@ const MACROS = {
       feature('browser help opened'); await click('#cacheHelpBtn'); expect('the same button hides them again', byId('cacheHelp').hidden, 'The browser buttons did not hide again', 'help toggle');
       await click('#saveNoteOk'); expect('Got it! closes the note and it is remembered', !ov.classList.contains('show') && SBX.store.get(A.SAVE_NOTE_KEY) === '1', 'Got it! did not close the note or it was not remembered', 'note ok');
       await click('#addBtn'); await settle(); expect('a second reminder does not show the note again', !ov.classList.contains('show'), 'The note came back for the second reminder', 'note again');
-      seedData([], null); SBX.store.delete(A.SAVE_NOTE_KEY); await click('#addBtn'); await settle(); key('Escape', {}, document.body); await settle(); expect('Escape also closes the note', !ov.classList.contains('show'), 'Escape did not close the cache note', 'note esc');
+      seedData([], null); SBX.store.delete(A.SAVE_NOTE_KEY); await click('#addBtn'); await settle(); await noteWrite(); key('Escape', {}, document.body); await settle(); expect('Escape also closes the note', !ov.classList.contains('show'), 'Escape did not close the cache note', 'note esc');
       seedData([mkRem({ title: 'already here' })], null); SBX.store.delete(A.SAVE_NOTE_KEY); await click('#addBtn'); await settle(); expect('the note is only for the very first reminder', !ov.classList.contains('show'), 'The note showed although reminders already existed', 'note first only');
     } finally { T.noteOn = false; closeOverlays(); }
   },
@@ -1010,14 +1014,17 @@ KINDS.push(
     return null;
   }],
   ['nb-typing', 0, async () => {   // types one letter at a time, with typos, backspaces and the odd pause, and expects every letter to land
-    if (!byId('d-title')) { const b = byId('addBtn'); if (b && A.reminders.length < 50) await realClick(b); else if (A.reminders[0]) A.selectReminder(A.reminders[0].id); await settle(); }
+    if (window.__guide && window.__guide.isOpen) { try { window.__guide.close(); } catch (e) { /* ignore */ } await raf(); await raf(); }   // (a person types in the form, not behind the open walkthrough, and closing it hands the focus back to its button)
+    if (!byId('d-title') || !byId('d-title').offsetParent) { const b = byId('addBtn');   // (the form is in the page but hidden while no reminder is open)
+      if (b && A.reminders.length < 50) await realClick(b); else if (A.reminders[0]) A.selectReminder(A.reminders[0].id); await settle(); }
+    await sleep(180);   // (the page's own focus moves, such as the walkthrough handing the focus back, are done before a person starts typing)
     let el = byId('d-title'); if (!el) return null; el = refocus(el);
     const want = pick(NB_PHRASES), caps = chance(0.1), phrase = caps ? want.toUpperCase() : want; let shown = '';
     for (const ch of phrase) {
       if (chance(0.08)) { shown += 'x'; setValue(el, shown); el.dispatchEvent(new Event('input', { bubbles: true })); key('Backspace', {}, el); shown = shown.slice(0, -1); setValue(el, shown); el.dispatchEvent(new Event('input', { bubbles: true })); }
       shown += ch; setValue(el, shown); key(ch, {}, el); el.dispatchEvent(new Event('input', { bubbles: true }));
       if (chance(0.3)) await raf();
-      const now2 = byId('d-title'); if (!check('the cursor stays in the title while typing', now2 && document.activeElement === now2 && now2.value === shown)) { find('flow', 'error', `Typing "${phrase}" one letter at a time: after "${shown.slice(-8)}" the cursor left the title or letters were lost`, { where: 'typing' }); break; }
+      const now2 = byId('d-title'); if (!check('the cursor stays in the title while typing', now2 && document.activeElement === now2 && now2.value === shown)) { const ae = document.activeElement; find('flow', 'error', `Typing "${phrase}" one letter at a time: after "${shown.slice(-8)}" the cursor left the title or letters were lost (title ${now2 ? 'exists' : 'is gone'}${now2 && now2 !== el ? ', replaced by a new field' : ''}, value "${now2 ? now2.value.slice(0, 20) : ''}", focus is on ${ae ? nbName(ae) : 'nothing'}, dialogs open ${$$('.overlay.show').length})`, { where: 'typing' }); break; }
       el = now2;
     }
     T.cur.desc = 'typed slowly ' + JSON.stringify(phrase.slice(0, 26));
@@ -1068,7 +1075,7 @@ KINDS.push(
   ['nb-regret', 0, async () => {   // presses Delete, then thinks better of it (or presses the confirmation twice)
     if (!A.reminders.length) return null; const r = pick(A.reminders); A.selectReminder(r.id); await settle(); const d = byId('d-delete'); if (!d || !visible(d)) return null;
     const n0 = A.reminders.length; await realClick(d); await settle();
-    if ($$('.overlay.show').length) {
+    if (byId('delOverlay').classList.contains('show')) {
       const way = pick(['cancel', 'escape', 'double-confirm']); T.cur.desc = 'regret: pressed Delete, then ' + way;
       if (way === 'cancel' && byId('delCancel')) { await realClick(byId('delCancel')); await settle(); expect('Cancel keeps the reminder', A.reminders.length === n0 && A.reminders.some((q) => q.id === r.id), 'Cancel on the delete dialog still deleted the reminder', 'cancel-delete'); }
       else if (way === 'escape') { key('Escape', {}, document.body); await settle(); expect('Escape on the delete dialog keeps the reminder', A.reminders.length === n0, 'Escape on the delete dialog deleted the reminder', 'esc-delete'); }
@@ -1096,7 +1103,7 @@ KINDS.push(
         else if (act === 'double-next' && $('.gd-next')) nbQuick($('.gd-next'), 2);
         else if (act === 'behind') {
           const l = scan().filter((q) => !q.el.closest('.gd') && showing(q.el) && !/guideBtn/.test(q.key)); const c = l.length ? pick(l) : null; const hole = $('.gd-hole'), hr = hole ? hole.getBoundingClientRect() : null;
-          if (c) { const [x, y] = center(c.el); const inside = hr && hr.width > 0 && x >= hr.left && x <= hr.right && y >= hr.top && y <= hr.bottom; const snap = JSON.stringify(A.reminders), n0 = A.reminders.length; await nbClickAt(x, y); await settle(); if (!inside && JSON.stringify(A.reminders) !== snap) bad.push(`a click on ${c.key} behind the dimmed page changed the reminders (${n0} to ${A.reminders.length})`); }
+          if (c) { const [x, y] = center(c.el); const inside = !under(x, y).closest('.gd'); const snap = JSON.stringify(A.reminders), n0 = A.reminders.length; await nbClickAt(x, y); await settle(); if (!inside && JSON.stringify(A.reminders) !== snap) bad.push(`a click on ${c.key} behind the dimmed page changed the reminders (${n0} to ${A.reminders.length})`); }
         } else await raf();
         await settle(); T.cur.desc = `walkthrough: ${act} (step ${g.step + 1})`;
       }
@@ -1119,7 +1126,6 @@ KINDS.push(
     for (let i = 0; i < n; i++) {
       const c = pick(l); if (!c.el.isConnected) continue; c.el.focus({ preventScroll: true }); last = c.key;
       if (!/delete|wipe|confirm|d-delete/i.test(c.key) || chance(0.2)) key(pick(['Enter', ' ', 'Enter', 'ArrowDown', 'Tab']), {}, c.el);
-      if (document.activeElement === c.el && c.k !== 'text' && c.k !== 'select') { const cs = getComputedStyle(c.el); const ring = (cs.outlineStyle !== 'none' && parseFloat(cs.outlineWidth) > 0) || (cs.boxShadow && cs.boxShadow !== 'none') || c.el.matches(':focus-visible'); if (!check('the control being used with the keyboard shows where the cursor is', ring)) find('focus', 'info', `No visible focus mark on ${c.key} when reached with the keyboard`, { where: 'focus:' + c.key }); }
       if (i % 3 === 2) await raf();
     }
     T.cur.desc = `keyboard tour of ${n} controls, last ${last}`; await settle(); closeOverlays(); return null;

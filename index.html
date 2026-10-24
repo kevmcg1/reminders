@@ -2016,12 +2016,23 @@ function showListPane() {
   document.getElementById('sidebar')?.classList.remove('mobile-hidden');
 }
 
+// The note about the cache comes up once the first reminder has been written, never while someone is still typing it (it would take their
+// first letters): when the title field is left, or the typing stops for a moment.
+let saveNotePending = false, saveNoteTimer = 0;
 function maybeShowSaveNote(isFirst) {
   if (!isFirst || (window.DevTest && window.DevTest.state && window.DevTest.state.running && !window.DevTest.state.noteOn)) return;   // (the UX tester makes hundreds of reminders; it must not be stopped by the note)
+  try { if (localStorage.getItem(SAVE_NOTE_KEY)) return; } catch(e) { return; }
+  saveNotePending = true;
+}
+function showSaveNoteNow() {
+  if (!saveNotePending) return;
+  saveNotePending = false; clearTimeout(saveNoteTimer);
   try { if (localStorage.getItem(SAVE_NOTE_KEY)) return; localStorage.setItem(SAVE_NOTE_KEY, '1'); } catch(e) { return; }
   showOverlay('saveNoteOverlay');
   setTimeout(() => document.getElementById('saveNoteOk')?.focus(), 30);
 }
+document.addEventListener('input', (e) => { if (saveNotePending && e.target && e.target.id === 'd-title') { clearTimeout(saveNoteTimer); saveNoteTimer = setTimeout(showSaveNoteNow, 1400); } });
+document.addEventListener('focusout', (e) => { if (saveNotePending && e.target && e.target.id === 'd-title') setTimeout(showSaveNoteNow, 60); });
 
 function addReminder() {
   const isFirst = reminders.length === 0;
