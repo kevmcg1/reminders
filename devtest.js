@@ -6,6 +6,8 @@
    and wrong, with how to reproduce each problem and a guess at the cause. Seeded: the same seed gives the same sequence of actions.
    Modes: Quick, Standard and Thorough follow a plan (every control, pairs, random runs, whole flows) with a percentage bar and a finishing time;
    "Aim at problems" remembers what broke before, replays it, hunts around the likeliest suspects and shrinks each failure to its shortest recipe;
+   "Speed coder" is open-ended too, but acts like a fast keyboard-first power user: Ctrl+N and a whole phrase at once, flurries of reminders, "remind me to ...",
+   "change the time to 5:41 PM" typed over an open reminder, lists in the notes, and every example the typing guide promises.
    "First-timer" is open-ended too, but acts like someone using a computer for the first time (missed and double clicks, hammering, typos, wrong boxes, wandering off).
    "Free run" is the open-ended mode. Runs keep going when the tab is in the background, and time can be sped up (10 or more actions a second).
    YOUR DATA IS SAFE: while a run is on, the app's two localStorage entries (reminders and settings) are redirected into a scratch copy in memory,
@@ -346,7 +348,7 @@ function typeInto(el, v, o = {}) {
 }
 
 /* ---------------------------------------------------------------- awkward values */
-const TITLES = ['', ' ', 'Buy milk', 'call mom tomorrow at 9am', 'dentist dec 15 at 2pm', 'standup at 2pm every weekday', 'pay rent on the 1st monthly', 'make a list of bread, eggs, milk', 'checklist: call bank, pay rent',
+const TITLES = ['', ' ', 'Buy milk', 'remind me to pick up the groceries at 5 PM', 'remind me to', 'remind me to ', 'remind me to in 5 minutes', 'REMIND ME TO CALL AT 5PM', 'remind me tomorrow to call dad', 'remind me to a, b and c', 'change the time to 5:41 PM', 'change the time to', 'change the date to blah', 'change the date and time to tomorrow at 9am', 'change the repeat to', 'change the repeat to never', 'change the urgency to purple', 'set the time to 99:99', 'change the time to noon at midnight', 'change the due to in 99999999999 days', 'call mom tomorrow at 9am', 'dentist dec 15 at 2pm', 'standup at 2pm every weekday', 'pay rent on the 1st monthly', 'make a list of bread, eggs, milk', 'checklist: call bank, pay rent',
   'in 5 minutes', 'urgent report due friday', 'gym tonight repeat every 3 days', 'water plants high priority in 2 hours', '<img src=x onerror=alert(1)>', '<b>bold</b>', '"quote\'s" & <tags>', 'x'.repeat(3000), 'word '.repeat(300), '日本語のテスト', '😀 emoji 🔔',
   'RTL עברית مرحبا', '​​', 'a\u202eb', '../../etc/passwd', '${7*7} {{7*7}}', '`backtick`', 'a;b,c|d', 'in 99999999999 days', '12/25/0001', 'feb 31', 'dec 32', 'at 99:99', '0pm', '13pm', 'every 0 days',
   'every 99999999999999999999 weeks', 'in 0 minutes', 'in 99999999999 minutes', '__proto__', 'constructor', 'null', 'undefined', 'NaN', 'Invalid Date', '[object Object]', '</textarea><script>alert(1)</script>', '</div></div>', "'; DROP TABLE x;--", 'Zeta ' + 'é'.repeat(20)];
@@ -404,7 +406,7 @@ function dataProblem(R, st) {
     if (typeof r.id !== 'string' || !/^[\w-]+$/.test(r.id)) return 'A reminder has a missing or unsafe id (' + (typeof r.id === 'string' ? 'it contains characters that are not safe in HTML' : ty(r.id)) + ')';
     if (ids.has(r.id)) return 'Two reminders share the same id';
     ids.add(r.id);
-    for (const f of ['title', 'notes', 'due', 'repeat', 'endText', 'snooze', 'icon']) if (typeof r[f] !== 'string') return `A reminder's ${f} is ${ty(r[f])}, not text`;
+    for (const f of ['title', 'lockedTitle', 'notes', 'due', 'repeat', 'endText', 'snooze', 'icon']) if (typeof r[f] !== 'string') return `A reminder's ${f} is ${ty(r[f])}, not text`;
     if (typeof r.completed !== 'boolean') return `A reminder's completed flag is ${ty(r.completed)}, not true/false`;
     if (!urg.includes(r.urgency)) return 'A reminder has an urgency that is not one of the five levels (' + (typeof r.urgency === 'string' ? 'text with characters like ' + JSON.stringify(r.urgency.slice(0, 8)) : ty(r.urgency)) + ')';
     if (r.icon && !A.ICONS.includes(r.icon)) return 'A reminder has an icon that is not one of the icons in the picker';
@@ -500,7 +502,7 @@ function checkChrome() {
   if (!check('the footer shows the license sentence and its link', !!lic && /cc0-1\.0/.test(lic.href) && /Reminders is released under GitHub/.test(f.textContent) && /All rights reserved/.test(f.textContent))) find('chrome', 'error', 'The footer license sentence or its Creative Commons link is missing or wrong', { where: 'footer' });
   if (head && f && app) { const h = head.getBoundingClientRect(), m = app.getBoundingClientRect(), b = f.getBoundingClientRect(); if (!check('header, app and footer stack in order without overlap', h.bottom <= m.top + 1 && m.bottom <= b.top + 1 && b.bottom <= innerHeight + 1 && h.top >= -1)) find('layout', 'error', `The header, the app and the footer overlap or run off the window (header bottom ${Math.round(h.bottom)}, app ${Math.round(m.top)}-${Math.round(m.bottom)}, footer top ${Math.round(b.top)}, window ${innerHeight})`, { where: 'stack' }); }
   const mark = $('.logo-mark'), chip = byId('versionChip');
-  if (!check('the logo is named Reminders and the version chip sits under it', !!mark && mark.getAttribute('aria-label') === 'Reminders' && !!chip && mark.nextElementSibling && mark.nextElementSibling.contains(chip) && !!window.__REM && chip.textContent.includes('v' + window.__REM.version))) find('chrome', 'error', 'The logo or the version chip under it is missing or out of place', { where: 'logo' });
+  if (!check('the logo is named Reminders and the version chip sits under it', !!mark && mark.getAttribute('aria-label') === 'Reminders' && !!chip && chipUnderLogo(mark, chip) && !!window.__REM && chip.textContent.includes('v' + window.__REM.version))) find('chrome', 'error', 'The logo or the version chip under it is missing or out of place', { where: 'logo' });
   if (!check('notifications are gone', !byId('notifStatus') && !byId('notifOverlay') && !$('.notif-warning') && !/notification/i.test(($('.sidebar') || {}).innerText || ''))) find('chrome', 'error', 'Something about notifications is still on the page', { where: 'notifications' });
 }
 function checkText() {
@@ -553,6 +555,7 @@ async function checkDom(deep) {
   try {
     const modalOpen = !!$('.overlay.show');
     if (!check('page fits the window width', document.documentElement.scrollWidth <= innerWidth + 1)) maybe('visual-overflow', 'warn', `The page is ${document.documentElement.scrollWidth}px wide in a ${innerWidth}px window`, 'page', () => document.documentElement.scrollWidth > innerWidth + 1);
+    $$('.overlay.show .modal').forEach((m) => { const q = m.getBoundingClientRect(), nm = m.closest('.overlay').id; const offTest = () => { if (!m.isConnected || !m.closest('.overlay.show')) return false; const b = m.getBoundingClientRect(); return b.width > 1 && (b.top < -2 || b.bottom > innerHeight + 2); }; if (!check('dialogs stay inside the window', !(q.width > 1 && (q.top < -2 || q.bottom > innerHeight + 2)))) maybe('visual-clipped', 'warn', `The dialog ${nm} runs off the window (y ${Math.round(q.top)}..${Math.round(q.bottom)} of ${innerHeight}); it should scroll instead`, 'dialog ' + nm, offTest); });
     const list = scan(); seenControls(list);
     const ids = new Map(); $$('[id]').forEach((e) => { if (!inDev(e)) ids.set(e.id, (ids.get(e.id) || 0) + 1); });
     ids.forEach((n, id) => { if (n > 1) find('a11y', 'warn', `The id "${id}" is used ${n} times on the page`, { where: id }); });
@@ -600,6 +603,8 @@ const feature = (n) => T.features.set(n, (T.features.get(n) || 0) + 1);
 
 /* ---------------------------------------------------------------- waiting, resetting and healing */
 const byId = (id) => document.getElementById(id);
+// the status tag sits right under the logo (Stable release), then the version chip; the top strip carries no tag at all
+function chipUnderLogo(mark, chip) { let n = mark && mark.nextElementSibling; if (n && n.classList.contains('stable-row')) n = n.nextElementSibling; return !!n && !!chip && n.contains(chip); }
 const rowOf = (id) => $(`#listScroll .reminder-item[data-id="${id}"]`);
 const rows = () => $$('#listScroll .reminder-item');
 async function settle() { await raf(); await raf(); }
@@ -638,6 +643,11 @@ function recognizer(text) {   // the text recognizer, with its promises checked
   if (!check('recognizer checklist items are not blank', !p.checklist || p.checklist.every((x) => typeof x === 'string' && x.trim()))) find('nlp', 'error', `The recognizer made a blank checklist item from "${w}"`, { where: 'blank item' });
   if (!check('recognizer repeat labels are clean', p.repeat == null || (typeof p.repeat === 'string' && !/NaN|undefined|Infinity/.test(p.repeat)))) find('nlp', 'error', `The recognizer made the repeat "${String(p.repeat).slice(0, 30)}" from "${w}"`, { where: 'repeat' });
   ['datetime', 'repeat', 'end', 'snooze'].forEach((k) => { try { const d = ({ datetime: A.detectDatetime, repeat: A.detectRepeat, end: A.detectEnd, snooze: A.detectSnooze })[k](text); if (!check('"Detected" labels are never blank', !(d && d.ok && !squash(d.label)))) find('nlp', 'error', `The ${k} detector says it understood "${w}" but gives a blank label`, { where: 'label ' + k }); } catch (e) { find('nlp', 'error', `The ${k} detector threw for "${w}": ${e.message}`, { stack: e.stack, where: 'throw ' + k }); } });
+  if (/^\s*remind\s+me\s+to\s+\S/i.test(text) && typeof p.cleanTitle === 'string' && /^\s*(remind\s+me|to)\b/i.test(p.cleanTitle)) find('nlp', 'error', `"${w}" starts with "remind me to" but the recognizer left the title "${squash(p.cleanTitle).slice(0, 40)}"`, { where: 'remind lead' });
+  if (A.parseChange) for (const due of ['', '2026-12-25T10:00']) {
+    try { const c = A.parseChange(text, { due }); if (c) { const bad = !c.changes || (c.changes.due && !validDue(c.changes.due)) || !c.items.length || c.items.some((it) => /NaN|undefined|Invalid|null/.test(it.join(' '))); if (!check('quick changes are valid', !bad)) find('nlp', 'error', `The quick-change reader made something unusable from "${w}": ${JSON.stringify(c).slice(0, 80)}`, { where: 'change' }); } }
+    catch (e) { find('nlp', 'error', `The quick-change reader threw for "${w}": ${e.message}`, { stack: e.stack, where: 'throw change' }); }
+  }
   return p;
 }
 
@@ -779,15 +789,18 @@ const MACROS = {
   },
   async 'text recognizer tour'() {
     seedData([], null);
-    const groups = A.HELP.filter((h) => /^(Dates|Times|Date \+ time|Repeat|Checklists)/.test(h.title));
+    const groups = A.HELP.filter((h) => /^(Dates|Times|Date \+ time|Remind me|Change it|Repeat|Urgency|Checklists)/.test(h.title));
     for (const g of groups) for (const ex of g.ex) {
       const p = recognizer(ex); if (!p) continue;
-      const kind = /^Repeat/.test(g.title) ? 'repeat' : /^Checklists/.test(g.title) ? 'checklist' : 'date';
-      const ok = p.matched && (kind === 'date' ? !!p.due : kind === 'repeat' ? !!p.repeat : !!(p.checklist && p.checklist.length >= 1));
+      const kind = /^Repeat/.test(g.title) ? 'repeat' : /^Checklists/.test(g.title) ? 'checklist' : /^Urgency/.test(g.title) ? 'urgency' : /^Change it/.test(g.title) ? 'change' : /^Remind me/.test(g.title) ? 'remind' : 'date';
+      if (kind === 'change') { const c = A.parseChange(ex, { due: '' }); expect('every quick change on the help screen is understood', !!c && c.items.length > 0, `The help screen promises "${ex}" works but the quick-change reader did not understand it`, 'help change ' + ex); continue; }
+      const ok = p.matched && (kind === 'date' ? !!p.due : kind === 'remind' ? !!p.due && !/^\s*(remind|to)\b/i.test(p.cleanTitle) : kind === 'repeat' ? !!p.repeat : kind === 'urgency' ? !!p.urgency : !!(p.checklist && p.checklist.length >= 1));
       expect('every example on the help screen is understood', ok, `The help screen promises "${ex}" works (${g.title}) but the recognizer ${p.matched ? 'did not make a ' + kind : 'matched nothing'}`, 'help ' + ex);
       const r = await newOne(ex);
       if (ok && r) {
-        if (kind === 'date') expect('Enter applies the date it detected', r.due === p.due, `Typing "${ex}" + Enter set due to "${r.due}" instead of "${p.due}"`, 'apply date ' + ex);
+        if (kind === 'date') expect('Enter applies the date it detected', closeDue(r.due, p.due), `Typing "${ex}" + Enter set due to "${r.due}" instead of "${p.due}"`, 'apply date ' + ex);
+        if (kind === 'remind') expect('Enter keeps the words as the title and sets the time', r.title === p.cleanTitle && closeDue(r.due, p.due), `Typing "${ex}" + Enter gave title "${r.title}" and due "${r.due}" instead of "${p.cleanTitle}" and "${p.due}"`, 'apply remind ' + ex);
+        if (kind === 'urgency') expect('Enter applies the urgency it detected', r.urgency === p.urgency, `Typing "${ex}" + Enter set urgency "${r.urgency}" instead of "${p.urgency}"`, 'apply urgency ' + ex);
         if (kind === 'repeat') expect('Enter applies the repeat it detected', r.repeat === p.repeat, `Typing "${ex}" + Enter set repeat to "${r.repeat}" instead of "${p.repeat}"`, 'apply repeat ' + ex);
         if (kind === 'checklist') expect('Enter applies the checklist it detected', r.checklist.length === p.checklist.length, `Typing "${ex}" + Enter made ${r.checklist.length} items instead of ${p.checklist.length}`, 'apply list ' + ex);
       }
@@ -868,7 +881,10 @@ const MACROS = {
   },
   async 'changelog'() {
     seedData([], null); const chip = byId('versionChip'), ov = byId('changelogOverlay');
-    expect('the version chip sits right under the logo and says the version', !!chip && $('.logo-mark').nextElementSibling.contains(chip) && chip.textContent.includes(window.__REM.version) && /What’s new/.test(chip.textContent), 'The chip under the logo does not show the version and What’s new', 'chip');
+    expect('the version chip sits right under the logo and says the version', !!chip && chipUnderLogo($('.logo-mark'), chip) && chip.textContent.includes(window.__REM.version) && /What’s new/.test(chip.textContent), 'The chip under the logo does not show the version and What’s new', 'chip');
+    const tag = $('.logo-mark').nextElementSibling && $('.logo-mark').nextElementSibling.querySelector('.stable-tag');
+    expect('the status tag is right under the logo and says Stable release', !!tag && squash(tag.textContent) === 'Stable release', 'The Stable release tag is not directly under the logo', 'status tag');
+    expect('the top strip carries no status tag', !$('.site-head .status-tag, .site-head .stable-tag'), 'A status tag is still in the top strip', 'strip tag');
     await click(chip); expect('the chip opens the changelog', ov.classList.contains('show'), 'The version chip did not open the changelog', 'cl open');
     const hs = $$('#changelogOverlay h4'), entries = window.__REM.changelog;
     expect('the changelog lists every release, newest first, with the current one marked', hs.length === entries.length && hs[0].textContent.includes('v' + entries[0].v) && /current/i.test(hs[0].textContent) && $$('#changelogOverlay li').length === entries.reduce((n, e) => n + e.items.length, 0), 'The changelog does not list every release from version.js', 'cl list');
@@ -1144,6 +1160,142 @@ function stateParts() {
 const diffParts = (a, b) => Object.keys(b).filter((k) => a && a[k] !== b[k]);
 const PURPOSE = { click: 'press the button / row / switch and check it does its job (or nothing) without breaking the saved data, the list or the layout', form: 'type or choose a value the way a person (or a careless one) would and check the app applies it or refuses it politely, never showing NaN or breaking the data', key: 'press the key and check the shortcut does what it says (or nothing)', add: 'add a reminder with New Reminder and check one empty reminder opens, then fill its title', search: 'type in the search box and check the list shows exactly the matching reminders', reorder: 'drag one row onto another and check the order changes without losing anything', import: 'import a generated file (good, odd or broken) and check good ones come in, bad ones are refused with a message and nothing breaks', export: 'export the reminders and check the file holds exactly what the app has', reload: 'save, reload and check nothing was lost or changed', macro: 'run a whole journey of connected steps with checks along the way', setup: 'put the app into a risky starting state before the next actions run' };
 
+/* ---------------------------------------------------------------- Speed coder mode
+   A fast, keyboard-first power user: Ctrl+N, a whole phrase typed at once and Enter, flurries of reminders one after another, "remind me to ..."
+   (the words stay in the title and the time is still set), "change the time to 5:41 PM" typed over an open reminder (only that setting changes,
+   the title stays), lists built in the notes with Ctrl+Enter, and every example the "How typing works" screen promises. The app has to read each
+   phrase the way its own help says, never lose or duplicate a reminder, and never eat the title. */
+const SC_TASKS = ['pick up the groceries', 'call the bank', 'water the plants', 'email Sam', 'stretch', 'take out the trash', 'renew the passport', 'feed the cat', 'back up the laptop'];
+const SC_PHRASES = ['buy milk', 'call mom tomorrow at 9am', 'remind me to pick up the groceries at 5 PM', 'remind me to call the bank tomorrow at 9am', 'remind me tomorrow to feed the cat', 'remind me to stretch in 30 minutes',
+  'dentist dec 15 at 2pm', 'standup at 2pm every weekday', 'urgent report due friday', 'make a list of eggs, milk, bread', 'gym tonight', 'pay rent on the 1st monthly', 'change the time to 5:41 PM', 'change the urgency to high',
+  'change the repeat to every 2 weeks', 'change the date to tomorrow', 'remind me to water the plants at 6:15 pm every day'];
+const SC_VERBS = ['change', 'set', 'make', 'move', 'update', 'reschedule', 'please change'];
+const SC_TIMES = [['5:41 PM', '17:41'], ['5pm', '17:00'], ['9am', '09:00'], ['noon', '12:00'], ['midnight', '00:00'], ['12:05 am', '00:05'], ['at 15:30', '15:30'], ['7 PM', '19:00']];
+const SC_DATES = [['tomorrow', (d) => d === tomorrow9().slice(0, 10)], ['dec 25', (d) => d.slice(5) === '12-25'], ['next friday', (d) => new Date(d + 'T12:00').getDay() === 5]];
+const SC_URG = [['high', 'high'], ['low priority', 'low'], ['critical', 'critical'], ['urgent', 'critical'], ['medium urgency', 'medium'], ['none', 'none']];
+const SC_REP = [['every 2 weeks', 'Every 2 weeks'], ['never', 'Never'], ['weekly', 'Every week'], ['every weekday', 'Every weekday'], ['every 3 days', 'Every 3 days'], ['daily', 'Every day']];
+const pad2 = (n) => String(n).padStart(2, '0');
+const t12 = () => { const h = ri(1, 12), m = pick([0, 0, 0, 15, 30, 41, 59]), ap = pick(['AM', 'PM', 'am', 'pm']); return { text: `${h}${m ? ':' + pad2(m) : ''} ${ap}`, hh: (h % 12) + (/p/i.test(ap) ? 12 : 0), mm: m }; };
+const closeDue = (a, b) => a === b || (!!a && !!b && Math.abs(new Date(a) - new Date(b)) <= 120000);   // ("in 30 minutes" is worked out a moment apart by the tester and by the app)
+const selected = () => A.reminders.find((q) => q.id === A.selectedId);
+
+// "remind me to ..." in one of its four shapes: the lead-in goes, the words (and any time in them) stay, the time is set, and leaving the title does not read it again
+async function scRemind(variant) {
+  const task = pick(SC_TASKS), tm = t12(); let phrase, want, dueOk;
+  if (variant === 'time') { phrase = `remind me to ${task} at ${tm.text}`; want = `${task} at ${tm.text}`; dueOk = (d) => validDue(d) && d.slice(11) === `${pad2(tm.hh)}:${pad2(tm.mm)}`; }
+  else if (variant === 'day') { phrase = `remind me to ${task} tomorrow at 9am`; want = `${task} tomorrow at 9am`; dueOk = (d) => d === tomorrow9(); }
+  else if (variant === 'none') { phrase = `remind me to ${task}`; want = task; dueOk = (d) => d === ''; }
+  else { phrase = `remind me tomorrow to ${task}`; want = task; dueOk = (d) => d === tomorrow9(); }
+  const r = await newOne(phrase); if (!r) return phrase;
+  expect('"remind me to ..." drops the lead-in and keeps the rest as the title', r.title === want, `"${phrase}" + Enter gave the title "${r.title}" (expected "${want}")`, 'remind title ' + variant);
+  expect('and the time in the words is set', dueOk(r.due), `"${phrase}" + Enter gave due "${r.due}"`, 'remind due ' + variant);
+  expect('the title field shows the same words', !byId('d-title') || byId('d-title').value === want, `The title field shows "${byId('d-title') && byId('d-title').value}" instead of "${want}"`, 'remind field ' + variant);
+  const due0 = r.due, t = byId('d-title'); if (t) { refocus(t); t.blur(); await settle(); }
+  expect('leaving the title does not read its time out again', r.title === want && r.due === due0, `After clicking out of the title "${want}" it became "${r.title}" with due "${r.due}" (it was "${due0}")`, 'remind relock ' + variant);
+  feature('remind me to phrases'); return phrase;
+}
+// "change the ... to ..." typed in the title of the open reminder: only that setting changes and the title stays
+async function scChange(r, what) {
+  const title0 = r.title, due0 = r.due, rep0 = r.repeat, urg0 = r.urgency, n0 = A.reminders.length, verb = pick(SC_VERBS); let text, ok, why;
+  if (what === 'time') { const [p, hm] = pick(SC_TIMES); text = `${verb} the time to ${p}`; ok = () => validDue(r.due) && r.due.slice(11) === hm && (!due0 || r.due.slice(0, 10) === due0.slice(0, 10)); why = `time ${hm} on the same day`; }
+  else if (what === 'date') { const [p, test] = pick(SC_DATES); text = `${verb} the date to ${p}`; ok = () => validDue(r.due) && r.due !== '' && test(r.due.slice(0, 10)) && r.due.slice(11) === (due0 ? due0.slice(11) : '09:00'); why = 'the new day at the same time'; }
+  else if (what === 'both') { text = `${verb} the date and time to tomorrow at 9am`; ok = () => r.due === tomorrow9(); why = 'tomorrow at 9:00'; }
+  else if (what === 'repeat') { const [p, want] = pick(SC_REP); text = `${verb} the repeat to ${p}`; ok = () => r.repeat === want && r.due === due0; why = `repeat "${want}" and the date untouched`; }
+  else { const [p, want] = pick(SC_URG); text = `${verb} the ${/urgency|priority/.test(p) ? 'urgency' : 'priority'} to ${p}`; ok = () => r.urgency === want && r.due === due0; why = `urgency "${want}" and the date untouched`; }
+  await typeTitle(text);
+  expect(`"${text}" changes ${what}`, ok(), `"${text}" + Enter did not give ${why} (due was "${due0}", is "${r.due}"; repeat "${rep0}" -> "${r.repeat}"; urgency "${urg0}" -> "${r.urgency}")`, 'change ' + what);
+  expect('a quick change leaves the title as it was', r.title === title0 && (!byId('d-title') || byId('d-title').value === title0) && A.reminders.length === n0, `After "${text}" the title is "${r.title}" (field "${byId('d-title') && byId('d-title').value}"), expected "${title0}", reminders ${n0} -> ${A.reminders.length}`, 'change title ' + what);
+  feature('quick changes'); return text;
+}
+const scOpen = async () => newOne(pick(SC_TASKS) + ' ' + pick(['tomorrow at 2pm', 'dec 15 at 4pm', 'every week', '']).trim());
+const SC_GROUPS = /^(Dates|Times|Date \+ time|Remind me|Repeat|Urgency|Checklists)/;
+// a phrase from the help screen typed at once: the app must apply exactly what the recognizer says it understood
+async function scPlain(ex) {
+  const p = recognizer(ex); if (!p || !p.matched) return;
+  const r = await newOne(ex); if (!r) return;
+  expect('typing a phrase at once and pressing Enter applies what was understood', r.title === p.cleanTitle && closeDue(r.due, p.due || ''), `"${ex}" + Enter gave title "${r.title}" and due "${r.due}"; the recognizer says title "${p.cleanTitle}" and due "${p.due}"`, 'plain ' + ex);
+  if (p.repeat) expect('and the repeat', r.repeat === p.repeat, `"${ex}" + Enter set repeat "${r.repeat}" instead of "${p.repeat}"`, 'plain repeat ' + ex);
+  if (p.urgency) expect('and the urgency', r.urgency === p.urgency, `"${ex}" + Enter set urgency "${r.urgency}" instead of "${p.urgency}"`, 'plain urgency ' + ex);
+  feature('help phrases typed');
+}
+
+KINDS.push(
+  ['sc-remind', 2, async () => { if (A.reminders.length >= 50) return null; const v = pick(['time', 'time', 'day', 'none', 'old']), ph = await scRemind(v); T.cur.desc = 'remind me to: ' + JSON.stringify(String(ph).slice(0, 50)); return null; }],
+  ['sc-change', 2, async () => { if (A.reminders.length >= 50) return null; const r = await scOpen(); if (!r) return null; const w = pick(['time', 'time', 'date', 'both', 'repeat', 'urgency']), tx = await scChange(r, w); T.cur.desc = 'quick change: ' + tx; return null; }],
+  ['sc-plain', 2, async () => { if (A.reminders.length >= 50) return null; const ex = pick(A.HELP.filter((h) => SC_GROUPS.test(h.title)).flatMap((h) => h.ex)); await scPlain(ex); T.cur.desc = 'typed from the help screen: ' + JSON.stringify(ex.slice(0, 50)); return null; }],
+  ['sc-flurry', 1, async () => {   // Ctrl+N, a phrase, Enter, again and again with no pause: none may be lost, doubled or garbled
+    const k = ri(3, 6); if (A.reminders.length > 50 - k) return null; const n0 = A.reminders.length, ids = new Set(A.reminders.map((q) => q.id)); let made = 0, last = '';
+    for (let i = 0; i < k; i++) {
+      key('n', { ctrl: 1 }, document.body); await raf(); const t = byId('d-title'); if (!t) break;
+      const ph = pick(SC_PHRASES); last = ph; typeInto(t, ph, { enter: true }); made++; await raf();
+      const r = selected();
+      if (r && /^\s*remind\s+me\s+(to\s+)?\S/i.test(ph)) expect('"remind me ..." never stays in a title', !/^\s*(remind\s+me|to)\b/i.test(r.title), `"${ph}" + Enter left the title "${r.title}"`, 'flurry remind ' + ph);
+      if (r && /^change\b/i.test(ph)) expect('a quick change typed into a new reminder leaves its title empty', r.title === '', `"${ph}" + Enter left the title "${r.title}"`, 'flurry change ' + ph);
+    }
+    await settle(); T.cur.desc = `flurry of ${made} reminders, last ${JSON.stringify(last.slice(0, 30))}`;
+    expect('every Ctrl+N made exactly one reminder, however fast the typing', A.reminders.length === n0 + made && new Set(A.reminders.map((q) => q.id)).size === A.reminders.length && A.reminders.filter((q) => !ids.has(q.id)).length === made, `${made} quick Ctrl+N rounds took ${n0} reminders to ${A.reminders.length}`, 'flurry count'); feature('reminder flurries'); return null;
+  }],
+  ['sc-keys', 1, async () => {   // keyboard only: Ctrl+N, title and Enter, then a list in the notes with Ctrl+Enter
+    if (A.reminders.length >= 50) return null; const n0 = A.reminders.length; key('n', { ctrl: 1 }, document.body); await settle(); const t = byId('d-title'); if (!t) return null;
+    typeInto(t, pick(SC_TASKS) + ' tomorrow at 9am', { enter: true }); await settle(); const r = selected(), items = ['eggs', 'milk', 'bread', 'rice'].slice(0, ri(2, 4)), nt = byId('d-notes');
+    if (nt) { typeInto(nt, 'make a list of ' + items.join(', '), { enter: true, ctrl: true }); await settle(); }
+    T.cur.desc = 'keyboard only: Ctrl+N, title, Enter, list in the notes, Ctrl+Enter';
+    expect('Ctrl+N, a title with a time, then a list in the notes builds the whole reminder', !!r && A.reminders.length === n0 + 1 && r.due === tomorrow9() && r.checklist.map((x) => x.text).join() === items.join() && !/list/i.test(r.notes), `The keyboard-only reminder ended with ${r ? r.checklist.length : '?'} checklist items, due "${r && r.due}", notes "${r && r.notes}" (wanted ${items.length} items and tomorrow 9:00)`, 'keys journey'); feature('keyboard-only reminders'); return null;
+  }],
+);
+const SC_W = { 'sc-remind': 17, 'sc-change': 17, 'sc-plain': 14, 'sc-flurry': 9, 'sc-keys': 8, macro: 3, add: 3, search: 3, key: 4, click: 3, form: 3, reorder: 2, reload: 1, import: 1, export: 1 };
+Object.assign(PURPOSE, { 'sc-remind': 'type "remind me to ..." and check the lead-in goes, the words and time stay in the title, the time is set and leaving the title does not strip it', 'sc-change': 'type "change the time/date/repeat/urgency to ..." over an open reminder and check only that setting changes and the title stays', 'sc-plain': 'type an example from the "How typing works" screen at once and check the app applies what the recognizer understood', 'sc-flurry': 'make several reminders in a row with Ctrl+N and a phrase each, with no pause, and check none is lost, doubled or garbled', 'sc-keys': 'build a reminder with the keyboard only, a title then a list in the notes with Ctrl+Enter' });
+
+Object.assign(MACROS, {
+  async 'remind me to journey'() {
+    seedData([], null); for (const v of ['time', 'day', 'none', 'old']) await scRemind(v);
+    const a = await newOne('remind me to call dad at 5 PM'); expect('"remind me to call dad at 5 PM" keeps the words', a.title === 'call dad at 5 PM' && a.due.slice(11) === '17:00', `Got title "${a.title}" and due "${a.due}"`, 'remind dad');
+    A.selectReminder(a.id); await settle(); await typeTitle('call dad at 6 PM');
+    expect('editing the kept time in the title reads the new time like any phrase', a.title === 'call dad' && a.due.slice(11) === '18:00', `Retyping "call dad at 6 PM" gave title "${a.title}" and due "${a.due}"`, 'remind edit');
+    feature('remind me to journeys');
+  },
+  async 'quick change journey'() {
+    seedData([], null); const r = await newOne('Dentist dec 15 at 2pm');
+    for (const w of ['time', 'time', 'time', 'date', 'both', 'repeat', 'repeat', 'urgency', 'urgency']) await scChange(r, w);
+    const none = await newOne('Buy milk'); await typeTitle('change the time to 5:41 PM'); expect('a reminder with no date gets one when its time is changed', validDue(none.due) && none.due.slice(11) === '17:41' && none.title === 'Buy milk', `Changing the time of a reminder with no date gave due "${none.due}" and title "${none.title}"`, 'change nodate');
+    const q = await newOne('Plan'); const d0 = q.due; await typeTitle('change the time to purple'); expect('a change it cannot read is just a title', q.due === d0 && /^change the time to purple$/.test(q.title), `"change the time to purple" gave title "${q.title}" and due "${q.due}"`, 'change bad');
+    const u = await newOne('Plan B'); await typeTitle('change the urgency to purple'); expect('an unknown urgency is just a title', u.urgency === 'none' && u.title === 'change the urgency to purple', `"change the urgency to purple" gave urgency "${u.urgency}" and title "${u.title}"`, 'change bad urgency');
+    feature('quick change journeys');
+  },
+  async 'typing guide dialog'() {
+    seedData([], null); await click('#helpBtn'); expect('How typing works opens', byId('helpOverlay').classList.contains('show'), 'The help button did not open How typing works', 'tg open');
+    const cats = $$('#helpGrid .help-cat'), chips = $$('#helpGrid .help-ex'), withNote = A.HELP.filter((h) => h.note).length;
+    expect('the guide has one block per category and shows every example', cats.length === A.HELP.length && chips.length === A.HELP.reduce((n, h) => n + h.ex.length, 0), `The guide shows ${cats.length} blocks and ${chips.length} examples for ${A.HELP.length} categories`, 'tg count');
+    expect('every category with a note shows it', $$('#helpGrid .help-note').length === withNote && $$('#helpGrid .help-note').every((e) => squash(e.textContent).length > 10), 'A category note is missing or empty in the guide', 'tg notes');
+    for (const t of ['Dates', 'Times', 'Date + time together', 'Remind me to', 'Change it by typing', 'Repeat', 'Urgency', 'Checklists']) expect('the guide covers ' + t, A.HELP.some((h) => h.title.startsWith(t)), 'The guide has no "' + t + '" category', 'tg cat ' + t);
+    const txt = squash(byId('helpOverlay').textContent); for (const ph of ['remind me to pick up the groceries at 5 PM', 'change the time to 5:41 PM']) expect('the guide shows "' + ph + '"', txt.includes(ph), 'The guide does not show the example "' + ph + '"', 'tg ex ' + ph);
+    await sleep(260); const m = $('#helpOverlay .modal'), done = byId('helpDone');
+    if (m && done) { m.scrollTop = m.scrollHeight; await raf(); const q = done.getBoundingClientRect(), mr = m.getBoundingClientRect(); expect('the guide fits the window or scrolls, and its last button can be reached', mr.top >= -2 && mr.bottom <= innerHeight + 2 && q.bottom <= innerHeight + 2 && q.top >= -2 && (m.scrollHeight <= m.clientHeight + 1 || /auto|scroll/.test(getComputedStyle(m).overflowY)), `The guide spans y ${Math.round(mr.top)}..${Math.round(mr.bottom)} in a ${innerHeight}px window and Got it sits at ${Math.round(q.top)}..${Math.round(q.bottom)}`, 'tg fit'); }
+    closeOverlays();
+  },
+  async 'dialogs fit the window'() {
+    seedData([], null);
+    for (const id of OVERLAYS.concat('changelogOverlay')) {
+      closeOverlays(); byId(id).classList.add('show'); await sleep(260); const m = byId(id).querySelector('.modal'); if (!m) continue; const r = m.getBoundingClientRect(), scrolls = m.scrollHeight > m.clientHeight + 1;
+      expect(id + ' stays inside the window', r.top >= -2 && r.bottom <= innerHeight + 2, `${id} spans y ${Math.round(r.top)}..${Math.round(r.bottom)} in a ${innerHeight}px window (it is cut off)`, 'fit ' + id);
+      expect(id + ' scrolls when it is taller than the window', !scrolls || /auto|scroll/.test(getComputedStyle(m).overflowY), `${id} has ${m.scrollHeight}px of content in ${m.clientHeight}px and does not scroll`, 'scroll ' + id);
+      if (scrolls) { m.scrollTop = m.scrollHeight; await raf(); const last = [...m.children].filter((e) => visible(e)).pop(); if (last) { const q = last.getBoundingClientRect(); expect(id + ' can be scrolled to its last part', q.bottom <= innerHeight + 2, `The end of ${id} stays below the window after scrolling (${Math.round(q.bottom)} of ${innerHeight})`, 'end ' + id); } }
+    }
+    closeOverlays(); feature('dialog fit checks');
+  },
+  async 'walkthrough teaches the new typing'() {
+    seedData([], null); SBX.store.delete(A.SAVE_NOTE_KEY); T.guideOK = true; const g = window.__guide;
+    try {
+      if (!g) { expect('the walkthrough exists', false, 'The walkthrough is missing', 'wt missing'); return; }
+      await click('#guideBtn'); await settle(); let guard = 0, seen = { remind: false, change: false };
+      while (g.isOpen && guard++ < g.steps + 2) { const c = $('.gd-card'); if (c) { const tx = squash(c.textContent); if (/remind me to/i.test(tx) && /pick up the groceries at 5 PM/i.test(tx)) seen.remind = true; if (/change the time to 5:41 PM/i.test(tx)) seen.change = true; } const nx = $('.gd-next'); if (!nx || $('.overlay.show')) break; nx.click(); await settle(); }
+      expect('the walkthrough tells people about "remind me to ..."', seen.remind, 'No step of "How do I use this?" explains "remind me to pick up the groceries at 5 PM"', 'wt remind');
+      expect('the walkthrough tells people about "change the time to 5:41 PM"', seen.change, 'No step of "How do I use this?" explains "change the time to 5:41 PM"', 'wt change');
+      feature('walkthrough text checks');
+    } finally { T.guideOK = false; try { g && g.close(); } catch (e) { /* ignore */ } closeOverlays(); }
+  },
+});
+
 /* ---------------------------------------------------------------- one test */
 async function oneAction(spec) {
   const outer = rng, aseed = spec && spec.seed != null ? spec.seed >>> 0 : Math.floor(outer() * 4294967296);
@@ -1154,7 +1306,7 @@ async function oneAction0(aseed) {
   T.n++; const n = T.n; const spec = T.spec;
   heal();
   const st = { list: scan() }; seenControls(st.list);
-  let kind = spec.kind ? KINDS.find((k) => k[0] === spec.kind) : wpick(KINDS, (k) => (T.mode === 'newbie' ? NB_W[k[0]] || 0 : k[1])), cur = T.cur = { n, kind: kind[0], desc: kind[0], ctl: '', bad: [], seed: aseed };
+  let kind = spec.kind ? KINDS.find((k) => k[0] === spec.kind) : wpick(KINDS, (k) => (T.mode === 'newbie' ? NB_W[k[0]] || 0 : T.mode === 'speed' ? SC_W[k[0]] || 0 : k[1])), cur = T.cur = { n, kind: kind[0], desc: kind[0], ctl: '', bad: [], seed: aseed };
   const stepRec = { kind: kind[0], seed: aseed }; if (spec.ctl) stepRec.ctl = spec.ctl; for (const k of ['name', 'file', 'macro', 'fuzz']) if (spec[k] !== undefined) stepRec[k] = spec[k]; if (T.scenario) T.scenario.push(stepRec); T.scenarioCtl = stepRec;
   // an empty app means little to test: most of the time start from some reminders
   if (!spec.kind && !A.reminders.length && chance(0.6)) { kind = KINDS.find((k) => k[0] === 'import'); cur.kind = 'import'; spec.file = { kind: 'wrapped' }; }
@@ -1199,6 +1351,7 @@ const MODES = {
   thorough: { label: 'Thorough: about 3000 actions, every control many times, thousands of pairs and runs, every flow', budget: 3000 },
   problems: { label: 'Aim at problems: scouts for suspects, replays old problems, spends most of its time on what is most likely to break, shrinks every failure', budget: 450, scoutShare: .14 },
   newbie: { label: 'First-timer: open-ended, like someone using a computer for the first time, tired and interrupted: missed clicks, double clicks, hammering, slow typing with typos, typing in the wrong place, wandering off, backing out of dialogs', budget: 0 },
+  speed: { label: 'Speed coder: open-ended, like a fast keyboard-first power user: Ctrl+N and a whole phrase at once, flurries of reminders, "remind me to ...", "change the time to 5:41 PM" typed over a reminder, lists in the notes, and every example in the typing guide', budget: 0 },
   free: { label: 'Free run: the original open-ended run (your rate, max and seed below)', budget: 0 },
 };
 const IMPORT_KINDS = ['wrapped', 'array', 'old', 'htmlTitles', 'notJson', 'emptyFile', 'wrongShape', 'weirdTypes', 'truncated', 'big', 'number', 'nullDoc', 'empty', 'emptyArr'];
@@ -1342,7 +1495,7 @@ async function start(o = {}) {
   if (T.running) {
     T.mode = MODES[o.mode] ? o.mode : 'free'; T.budgetOverride = o.budget || 0; T.speed = o.speed != null ? +o.speed : (T.mode === 'free' || T.mode === 'newbie' ? 1 : 10); T.phases = {}; T.phaseName = ''; T.plan = null; T.problems = null; T.live.trace = [];
     BG.start(T.speed);
-    try { if (T.mode === 'free' || T.mode === 'newbie') await loop(); else if (T.mode === 'problems') await runProblems(); else await runPlanned(T.mode); } catch (e) { find('js-error', 'error', 'Tester error: ' + (e && e.message), { stack: e && e.stack }); }
+    try { if (T.mode === 'free' || T.mode === 'newbie' || T.mode === 'speed') await loop(); else if (T.mode === 'problems') await runProblems(); else await runPlanned(T.mode); } catch (e) { find('js-error', 'error', 'Tester error: ' + (e && e.message), { stack: e && e.stack }); }
     T.scenario = null;
   }
   if (T.running) { T.running = false; T.endReason = 'plan finished'; }
@@ -1425,7 +1578,7 @@ function build_ui() {
   const st = document.createElement('style'); st.id = 'devtest-css'; st.textContent = CSS; document.head.appendChild(st);
   el = document.createElement('div'); el.id = 'devtest'; el.hidden = true; el.setAttribute('role', 'dialog'); el.setAttribute('aria-label', 'Automatic UX tester');
   el.innerHTML = `<div class="h"><b>UX tester</b><span class="dim">press ` + '`' + ` to hide</span><span class="sp"></span><button data-a="min" title="Collapse">–</button><button data-a="close" title="Hide (the test keeps running)">✕</button></div>
-<div class="row"><select id="dtMode" title="What kind of run"><option value="quick">Quick</option><option value="standard">Standard</option><option value="thorough">Thorough</option><option value="problems">Aim at problems</option><option value="newbie">First-timer</option><option value="free" selected>Free run</option></select><select id="dtSpeed" title="How much faster than real time the page's animations and timers run. Faster means more actions per second."><option value="1">Real time</option><option value="4">4× faster</option><option value="10" selected>10× faster</option><option value="20">20× faster</option></select><button data-a="forget" title="Forget the suspects and problems remembered from earlier Aim at problems runs">Forget memory</button></div>
+<div class="row"><select id="dtMode" title="What kind of run"><option value="quick">Quick</option><option value="standard">Standard</option><option value="thorough">Thorough</option><option value="problems">Aim at problems</option><option value="newbie">First-timer</option><option value="speed">Speed coder</option><option value="free" selected>Free run</option></select><select id="dtSpeed" title="How much faster than real time the page's animations and timers run. Faster means more actions per second."><option value="1">Real time</option><option value="4">4× faster</option><option value="10" selected>10× faster</option><option value="20">20× faster</option></select><button data-a="forget" title="Forget the suspects and problems remembered from earlier Aim at problems runs">Forget memory</button></div>
 <div class="dim" id="dtLabel" style="padding:2px 10px"></div>
 <div class="ok" id="dtSafe" style="padding:0 10px 2px;font-size:11px">Safe to run: it works on a scratch copy in memory. Your own reminders and settings are never touched and are put back when the run ends.</div>
 <div class="row"><button class="go" data-a="start">▶ Start</button><button data-a="pause" disabled>❚❚ Pause</button><button class="no" data-a="stop" disabled>■ Stop</button>
