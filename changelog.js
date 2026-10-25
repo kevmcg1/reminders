@@ -31,5 +31,5 @@
   const chip = document.createElement('button');
   chip.type = 'button'; chip.id = 'versionChip'; chip.className = 'rem-vchip'; chip.textContent = 'v' + V.version + ' · What’s new'; chip.title = 'Version ' + V.version + ' and the changelog';
   chip.addEventListener('click', open);
-  const row = document.createElement('div'); row.className = 'rem-vrow'; row.appendChild(chip); mark.insertAdjacentElement('afterend', row);
+  const row = document.createElement('div'); row.className = 'rem-vrow'; row.appendChild(chip); (document.querySelector('.stable-row') || mark).insertAdjacentElement('afterend', row);
 })();
