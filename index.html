@@ -364,6 +364,7 @@
   }
   .help-intro { font-size: 13.5px; color: var(--text-dim); line-height: 1.7; margin-bottom: 22px; }
   .help-intro strong { color: var(--text); }
+  .help-note { margin: 8px 0 0; font-size: 12.5px; line-height: 1.6; color: var(--text-dim); }
   .inline-chip { padding: 2px 8px; font-size: 11px; white-space: nowrap; }
   .inline-detect { display: inline-flex; font-size: 11px; vertical-align: middle; }
   .help-grid { display: flex; flex-direction: column; gap: 15px; margin-bottom: 22px; }
@@ -999,7 +1000,7 @@
       <h2>How typing works</h2>
       <button class="icon-btn" id="helpClose" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
     </div>
-    <p class="help-intro">Type plain English in the <strong>title</strong> or <strong>notes</strong> and the app recognizes dates, times, and repeats. When it spots something it shows an <span class="chip inline-chip"><i class="fa-solid fa-wand-magic-sparkles"></i> Auto-apply settings for…</span> prompt — press <kbd>Enter</kbd> (title) or <kbd>Ctrl</kbd>+<kbd>Enter</kbd> (notes), or click <strong>Apply</strong>. The schedule fields below accept the same phrases and show a live <span class="detect ok inline-detect"><i class="fa-solid fa-circle-check"></i> Detected</span> badge.</p>
+    <p class="help-intro">Type plain English in the <strong>title</strong> or <strong>notes</strong> and the app recognizes dates, times, repeats, urgency and checklists. When it spots something it shows a <span class="chip inline-chip"><i class="fa-solid fa-wand-magic-sparkles"></i> Detection Summary</span> — press <kbd>Enter</kbd> (title) or <kbd>Ctrl</kbd>+<kbd>Enter</kbd> (notes), or click <strong>Auto-apply all</strong>. You can also <strong>change</strong> a reminder by typing, for example “change the time to 5:41 PM”. The schedule fields below accept the same phrases and show a live <span class="detect ok inline-detect"><i class="fa-solid fa-circle-check"></i> Detected</span> badge.</p>
 
     <div class="help-grid" id="helpGrid"></div>
 
@@ -1062,13 +1063,16 @@ const QUICK_ICONS = ['fa-flag', 'fa-star', 'fa-heart'];
 
 // Content for the "How typing works" tutorial.
 const HELP = [
-  { icon: 'fa-calendar-day', title: 'Dates', ex: ['today', 'tomorrow', 'next monday', 'dec 25', '12/25', 'in 3 days', 'on the 5th'] },
-  { icon: 'fa-clock', title: 'Times', ex: ['3pm', '3:30pm', 'at 15:00', 'noon', 'midnight', 'this evening', 'tomorrow morning'] },
-  { icon: 'fa-wand-magic-sparkles', title: 'Date + time together', ex: ['call mom tomorrow at 9am', 'dentist dec 15 at 2pm', 'standup at 2pm'] },
-  { icon: 'fa-repeat', title: 'Repeat', ex: ['every day', 'weekly', 'every 2 weeks', 'every weekday', 'hourly', 'every 3 days'] },
-  { icon: 'fa-hourglass-half', title: 'Durations — for Repeat, Remind again, End', ex: ['13 mins', '2 hrs 3 mins', '90m', '1 hour 30 min'] },
+  { icon: 'fa-calendar-day', title: 'Dates', ex: ['today', 'tomorrow', 'tmrw', 'tonight', 'friday', 'next monday', 'dec 25', '12/25', '12/25/2026', 'in 3 days', 'in 2 weeks', 'in 3 months', 'on the 5th'] },
+  { icon: 'fa-clock', title: 'Times', ex: ['3pm', '3:30pm', 'at 3 pm', 'at 15:00', 'noon', 'midnight', 'morning', 'afternoon', 'evening', 'tonight', 'in 30 minutes', 'in 2 hours'], note: 'A date with no time is set for 9:00 AM. A time that has already passed today moves to tomorrow.' },
+  { icon: 'fa-wand-magic-sparkles', title: 'Date + time together', ex: ['call mom tomorrow at 9am', 'dentist dec 15 at 2pm', 'standup at 2pm', 'gym tomorrow morning'], note: 'The date and time words are read and taken out of the title: “call mom tomorrow at 9am” becomes “call mom”.' },
+  { icon: 'fa-comment-dots', title: 'Remind me to…', ex: ['remind me to pick up the groceries at 5 PM', 'remind me to call the bank tomorrow at 9am', 'remind me to stretch in 30 minutes'], note: 'Starting with “remind me to” keeps your words as the title, time included: “remind me to pick up the groceries at 5 PM” is titled “pick up the groceries at 5 PM” and is due at 5 PM.' },
+  { icon: 'fa-pen', title: 'Change it by typing', ex: ['change the time to 5:41 PM', 'change the date to next friday', 'change the date and time to tomorrow at 9am', 'change the repeat to every 2 weeks', 'change the repeat to never', 'change the urgency to high'], note: 'Type one of these in the title and press Enter. It changes the open reminder and leaves its title alone. Changing the time keeps the date, and changing the date keeps the time. “set”, “make”, “move”, “update” and “reschedule” work too.' },
+  { icon: 'fa-repeat', title: 'Repeat', ex: ['every day', 'daily', 'weekly', 'monthly', 'yearly', 'hourly', 'every weekday', 'every other day', 'biweekly', 'every 2 weeks', 'every 3 days', 'every 10 mins'] },
+  { icon: 'fa-gauge-high', title: 'Urgency', ex: ['urgent', 'asap', 'high priority', 'critical urgency', 'medium urgency', 'low priority', 'priority: high'] },
+  { icon: 'fa-hourglass-half', title: 'Durations — for Repeat, Remind again, End', ex: ['13 mins', '2 hrs 3 mins', '90m', '1 hour 30 min', '1d 6h'] },
   { icon: 'fa-flag-checkered', title: 'End repeat', ex: ['after 5 times', 'dec 25', '3 months', 'in 1 year'] },
-  { icon: 'fa-list-check', title: 'Checklists', ex: ['make a list of bread, eggs, milk', 'checklist: call bank, pay rent', 'add a list containing A and B'] },
+  { icon: 'fa-list-check', title: 'Checklists', ex: ['make a list of bread, eggs, milk', 'checklist: call bank, pay rent', 'add a list containing A and B'], note: 'In the title press Enter, in the notes press Ctrl+Enter. Everything after “list of” becomes checklist items.' },
 ];
 
 // Preset labels that fill the "Remind again in" input. Users may also type
@@ -1137,7 +1141,7 @@ function migrateReminder(x) {
     .filter(it => it && typeof it === 'object')
     .map(it => { let id = safeId(it.id) && !seenIds.has(it.id) ? it.id : uid(); seenIds.add(id); return { id, text: text(it.text), done: !!it.done }; });
   // Make every field the type the rest of the app relies on (old saves and imported files can hold anything)
-  merged.title = text(merged.title); merged.notes = text(merged.notes); merged.endText = text(merged.endText, 'Never');
+  merged.title = text(merged.title); merged.lockedTitle = text(merged.lockedTitle); merged.notes = text(merged.notes); merged.endText = text(merged.endText, 'Never');
   merged.completed = !!merged.completed;
   merged.due = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(text(merged.due)) && !isNaN(new Date(merged.due)) ? merged.due : '';
   if (!URGENCIES.some(u => u.id === merged.urgency)) merged.urgency = 'none';
@@ -1152,6 +1156,7 @@ function newReminder() {
   return {
     id: uid(),
     title: '',
+    lockedTitle: '',      // a title that keeps its date words ("pick up the groceries at 5 PM"): not read again while it stays exactly this
     notes: '',
     completed: false,
     due: '',
@@ -1195,10 +1200,14 @@ function parseNaturalLanguage(text) {
                 cleanTitle: text, matched: false, _exact: null };
   if (!text || !text.trim()) return res;
 
-  let work = ' ' + text + ' ';
+  // "remind me to pick up the groceries at 5 PM": the lead-in goes, but the words stay (including "at 5 PM") and the time is still read
+  const lead = text.match(/^\s*remind\s+me\s+to\s+(?=\S)/i);
+  const keepWhen = !!lead;
+  let work = ' ' + (lead ? text.slice(lead[0].length) : text) + ' ';
   const now = new Date();
   let m;
   const strip = re => { const mm = work.match(re); if (mm) work = work.replace(mm[0], ' '); return mm; };
+  const read = re => keepWhen ? work.match(re) : strip(re);   // date and time words: read them, and only take them out of the title when not keeping
 
   /* ---- REPEAT (produces a free-text label) ---- */
   const normUnit = u => ({ min: 'minute', mins: 'minute', minute: 'minute', hr: 'hour', hrs: 'hour', hour: 'hour', day: 'day', week: 'week', month: 'month', year: 'year' }[u.toLowerCase()] || u.toLowerCase());
@@ -1235,16 +1244,16 @@ function parseNaturalLanguage(text) {
   const setD = d => { dd = d.getDate(); mo = d.getMonth(); yy = d.getFullYear(); res.dateSet = true; };
   let tonight = false;
 
-  if ((m = strip(/\bin\s+(\d+)\s+(minute|min|hour|hr)s?\b/i))) {
+  if ((m = read(/\bin\s+(\d+)\s+(minute|min|hour|hr)s?\b/i))) {
     const n = parseInt(m[1]), d = new Date(now);
     if (/^h/i.test(m[2])) d.setHours(d.getHours() + n); else d.setMinutes(d.getMinutes() + n);
     setD(d); res.timeSet = true;
     res._exact = d; // exact datetime; build step uses this directly
   }
-  else if (strip(/\btonight\b/i)) { setD(now); tonight = true; }
-  else if (strip(/\btoday\b/i)) { setD(now); }
-  else if (strip(/\b(tomorrow|tmrw|tmr)\b/i)) { const d = new Date(now); d.setDate(d.getDate()+1); setD(d); }
-  else if ((m = strip(/\bin\s+(\d+)\s+(day|week|month|year)s?\b/i))) {
+  else if (read(/\btonight\b/i)) { setD(now); tonight = true; }
+  else if (read(/\btoday\b/i)) { setD(now); }
+  else if (read(/\b(tomorrow|tmrw|tmr)\b/i)) { const d = new Date(now); d.setDate(d.getDate()+1); setD(d); }
+  else if ((m = read(/\bin\s+(\d+)\s+(day|week|month|year)s?\b/i))) {
     const n = parseInt(m[1]), d = new Date(now), u = m[2].toLowerCase();
     if (u === 'day') d.setDate(d.getDate()+n);
     else if (u === 'week') d.setDate(d.getDate()+n*7);
@@ -1252,7 +1261,7 @@ function parseNaturalLanguage(text) {
     else if (u === 'year') d.setFullYear(d.getFullYear()+n);
     setD(d);
   }
-  else if ((m = strip(/\b(?:next\s+|this\s+)?(sunday|monday|tuesday|wednesday|thursday|friday|saturday)\b/i))) {
+  else if ((m = read(/\b(?:next\s+|this\s+)?(sunday|monday|tuesday|wednesday|thursday|friday|saturday)\b/i))) {
     const target = weekdays.indexOf(m[1].toLowerCase());
     const d = new Date(now);
     let diff = (target - d.getDay() + 7) % 7;
@@ -1260,19 +1269,19 @@ function parseNaturalLanguage(text) {
     d.setDate(d.getDate() + diff);
     setD(d);
   }
-  else if ((m = strip(/\b(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?\s+(\d{1,2})(?:st|nd|rd|th)?\b/i))) {
+  else if ((m = read(/\b(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?\s+(\d{1,2})(?:st|nd|rd|th)?\b/i))) {
     mo = months.indexOf(m[1].toLowerCase().slice(0,3));
     dd = parseInt(m[2]);
     yy = now.getFullYear();
     if (new Date(yy, mo, dd) < new Date(now.getFullYear(), now.getMonth(), now.getDate())) yy++;
     res.dateSet = true;
   }
-  else if ((m = strip(/\bon\s+the\s+(\d{1,2})(?:st|nd|rd|th)\b/i))) {
+  else if ((m = read(/\bon\s+the\s+(\d{1,2})(?:st|nd|rd|th)\b/i))) {
     dd = parseInt(m[1]); mo = now.getMonth(); yy = now.getFullYear();
     if (dd < now.getDate()) mo++;
     res.dateSet = true;
   }
-  else if ((m = strip(/\b(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?\b/))) {
+  else if ((m = read(/\b(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?\b/))) {
     mo = parseInt(m[1]) - 1; dd = parseInt(m[2]);
     yy = m[3] ? (m[3].length === 2 ? 2000 + parseInt(m[3]) : parseInt(m[3])) : now.getFullYear();
     res.dateSet = true;
@@ -1280,16 +1289,16 @@ function parseNaturalLanguage(text) {
 
   /* ---- TIME ---- */
   let hh = null, mi = null;
-  if ((m = strip(/\b(?:at\s+)?(\d{1,2})(?::(\d{2}))?\s*(am|pm)\b/i))) {
+  if ((m = read(/\b(?:at\s+)?(\d{1,2})(?::(\d{2}))?\s*(am|pm)\b/i))) {
     hh = parseInt(m[1]) % 12; if (m[3].toLowerCase() === 'pm') hh += 12;
     mi = m[2] ? parseInt(m[2]) : 0; res.timeSet = true;
-  } else if ((m = strip(/\bat\s+(\d{1,2}):(\d{2})\b/i))) {
+  } else if ((m = read(/\bat\s+(\d{1,2}):(\d{2})\b/i))) {
     hh = parseInt(m[1]); mi = parseInt(m[2]); res.timeSet = true;
-  } else if (strip(/\b(noon|midday)\b/i)) { hh = 12; mi = 0; res.timeSet = true; }
-  else if (strip(/\bmidnight\b/i)) { hh = 0; mi = 0; res.timeSet = true; }
-  else if (strip(/\bmorning\b/i)) { hh = 9; mi = 0; res.timeSet = true; }
-  else if (strip(/\bafternoon\b/i)) { hh = 15; mi = 0; res.timeSet = true; }
-  else if (strip(/\bevening\b/i)) { hh = 19; mi = 0; res.timeSet = true; }
+  } else if (read(/\b(noon|midday)\b/i)) { hh = 12; mi = 0; res.timeSet = true; }
+  else if (read(/\bmidnight\b/i)) { hh = 0; mi = 0; res.timeSet = true; }
+  else if (read(/\bmorning\b/i)) { hh = 9; mi = 0; res.timeSet = true; }
+  else if (read(/\bafternoon\b/i)) { hh = 15; mi = 0; res.timeSet = true; }
+  else if (read(/\bevening\b/i)) { hh = 19; mi = 0; res.timeSet = true; }
   else if (tonight) { hh = 19; mi = 0; res.timeSet = true; }
 
   /* ---- CHECKLIST ---- */
@@ -1328,10 +1337,46 @@ function parseNaturalLanguage(text) {
   clean = clean.replace(/^[^\S\n]*(at|on|by)[^\S\n]+/i, '');
   clean = clean.replace(/^[\s,;]+|[\s,;]+$/g, '');           // trim edge whitespace/commas
   clean = clean.replace(/[^\S\n]{2,}/g, ' ').trim();
+  if (!keepWhen && /^\s*remind\s+me\b/i.test(text)) clean = clean.replace(/^to\s+(?=\S)/i, '');   // "remind me tomorrow to call mom" -> "call mom"
   res.cleanTitle = clean;
+  res.keepTitle = keepWhen && (res.dateSet || res.timeSet);   // the title still holds its date words, so it must not be read (and stripped) again
 
-  res.matched = !!(res.dateSet || res.timeSet || res.repeat || res.urgency || (res.checklist && res.checklist.length));
+  res.matched = !!(res.dateSet || res.timeSet || res.repeat || res.urgency || (res.checklist && res.checklist.length) || (keepWhen && clean));
   return res;
+}
+
+/* =========================================================
+   Quick changes typed in the title
+   "change the time to 5:41 PM"        -> only the time of the open reminder
+   "change the date to next friday"    -> only the date
+   "change the repeat to every 2 weeks", "change the urgency to high"
+   The title is left as it was. Returns null when the text is not a change.
+   ========================================================= */
+const CHANGE_RE = /^\s*(?:please\s+)?(?:change|set|make|move|update|edit|reschedule)\s+(?:the\s+|this\s+|my\s+)?(?:reminder(?:'s|’s)?\s+)?(time|date|due\s*date|due|repeat|urgency|priority)\s+(?:to|for|as)\s+(.+?)\s*$/i;
+function parseChange(text, r) {
+  const m = text && text.match(CHANGE_RE);
+  if (!m) return null;
+  const what = m[1].toLowerCase().replace(/\s+/g, ''), val = m[2].trim();
+  const changes = {}, items = [];
+  if (what === 'repeat') {
+    if (/^(never|none|no|off|no repeat|don'?t repeat)$/i.test(val)) changes.repeat = 'Never';
+    else { const p = parseNaturalLanguage(val); if (p.repeat) changes.repeat = p.repeat; }
+    if (!changes.repeat) return null;
+    items.push(['fa-repeat', 'Change repeat', changes.repeat]);
+  } else if (what === 'urgency' || what === 'priority') {
+    const map = { critical: 'critical', urgent: 'critical', high: 'high', medium: 'medium', moderate: 'medium', normal: 'medium', low: 'low', none: 'none', no: 'none' };
+    const u = map[val.toLowerCase().replace(/\s*(urgency|priority)$/, '')];
+    if (!u) return null;
+    changes.urgency = u;
+    items.push(['fa-gauge-high', 'Change urgency', urgencyLabel(u)]);
+  } else {
+    const p = parseNaturalLanguage(val);
+    if (!p.due || (what === 'time' && !p.timeSet) || (what === 'date' && !p.dateSet)) return null;
+    const [pd, pt] = p.due.split('T'), [cd, ct] = r && r.due ? r.due.split('T') : [];
+    changes.due = (p.dateSet ? pd : cd || pd) + 'T' + (p.timeSet ? pt : ct || pt);   // whatever was not named keeps its current value
+    items.push([what === 'time' ? 'fa-clock' : 'fa-calendar', what === 'time' ? 'Change time' : what === 'date' ? 'Change date' : 'Change date & time', fmtDate(changes.due)]);
+  }
+  return { changes, items };
 }
 
 
@@ -1375,6 +1420,7 @@ function applyParse(reminder, parsed, key) {
     parsed.checklist.forEach(text => reminder.checklist.push({ id: uid(), text, done: false }));
   }
   reminder[key] = parsed.cleanTitle; // recognized tokens stripped from the source field
+  if (key === 'title') reminder.lockedTitle = parsed.keepTitle ? parsed.cleanTitle : '';   // "remind me to ..." keeps its time words: do not read them again
   save();
   renderDetail();
   renderList();
@@ -1775,13 +1821,26 @@ function wireDetail(r) {
   // --- Natural-language recognition for title AND notes ---
   function wireField(input, hintEl, key) {
     const kbd = key === 'notes' ? 'Ctrl+Enter' : 'Enter';
+    let base = r[key];   // the title as it stood before a quick change ("change the time to 5 PM") was typed over it
+    const readIt = v => (key === 'title' && r.lockedTitle && v === r.lockedTitle) ? parseNaturalLanguage('') : parseNaturalLanguage(v);
+    const changeIt = v => key === 'title' ? parseChange(v, r) : null;
+    function applyChange(ch) {
+      const c = ch.changes;
+      if (c.due) r.due = c.due;
+      if (c.repeat) r.repeat = c.repeat;
+      if (c.urgency) r.urgency = c.urgency;
+      r.title = base;
+      save(); renderDetail(); renderList();
+      toast(`${ch.items[0][1]}: ${ch.items[0][2]}`);
+    }
     function refresh() {
-      const parsed = parseNaturalLanguage(input.value);
-      const items = parsed.matched ? detectionItems(parsed) : [];
+      const change = changeIt(input.value);
+      const parsed = readIt(input.value);
+      const items = change ? change.items : parsed.matched ? detectionItems(parsed) : [];
       if (items.length) {
         hintEl.innerHTML =
           `<div class="ds">
-            <div class="ds-head"><i class="fa-solid fa-wand-magic-sparkles"></i> Detection Summary</div>
+            <div class="ds-head"><i class="fa-solid fa-wand-magic-sparkles"></i> ${change ? 'Quick Change' : 'Detection Summary'}</div>
             <div class="ds-list">${items.map(([ic, k, v]) =>
               `<div class="ds-row"><span class="ds-key"><i class="fa-solid ${ic}"></i>${k}</span><i class="fa-solid fa-arrow-right-long ds-arrow"></i><span class="ds-val">${escapeHtml(v)}</span></div>`).join('')}</div>
             <div class="ds-foot"><a class="apply-link">Auto-apply all</a><span class="ds-kbd">or press <kbd>${kbd}</kbd></span></div>
@@ -1789,14 +1848,15 @@ function wireDetail(r) {
         hintEl.classList.add('show');
         hintEl.querySelector('.apply-link').addEventListener('mousedown', ev => {
           ev.preventDefault(); // keep focus so blur doesn't double-fire
-          applyParse(r, parseNaturalLanguage(input.value), key);
+          if (change) applyChange(change); else applyParse(r, parsed, key);
         });
       } else {
         hintEl.classList.remove('show');
       }
     }
     input.addEventListener('input', () => {
-      r[key] = input.value;
+      if (!changeIt(input.value)) base = input.value;
+      r[key] = changeIt(input.value) ? base : input.value;
       if (key === 'notes') autoGrow(input);
       save();
       if (key === 'title') { renderList(); updateFullTitle(); }
@@ -1808,15 +1868,17 @@ function wireDetail(r) {
       const apply = key === 'title' ? e.key === 'Enter' : (e.key === 'Enter' && (e.ctrlKey || e.metaKey));
       if (apply) {
         e.preventDefault();
-        const parsed = parseNaturalLanguage(input.value);
-        if (parsed.matched) applyParse(r, parsed, key);
+        const change = changeIt(input.value), parsed = readIt(input.value);
+        if (change) applyChange(change);
+        else if (parsed.matched) applyParse(r, parsed, key);
         else if (key === 'title') input.blur();
       }
     });
     input.addEventListener('blur', () => {
       if (detailRendering) return;
-      const parsed = parseNaturalLanguage(input.value);
-      if (parsed.matched) applyParse(r, parsed, key);
+      const change = changeIt(input.value), parsed = readIt(input.value);
+      if (change) applyChange(change);
+      else if (parsed.matched) applyParse(r, parsed, key);
     });
     refresh();
   }
@@ -2248,6 +2310,7 @@ function renderHelpGrid() {
     <div class="help-cat">
       <h4><i class="fa-solid ${c.icon}"></i> ${c.title}</h4>
       <div class="help-examples">${c.ex.map(e => `<span class="help-ex">${escapeHtml(e)}</span>`).join('')}</div>
+      ${c.note ? `<p class="help-note">${escapeHtml(c.note)}</p>` : ''}
     </div>
   `).join('');
 }
@@ -2428,8 +2491,8 @@ function init() {
 
 document.addEventListener('DOMContentLoaded', init);
 </script>
-<script src="version.js?v=1"></script>
+<script src="version.js?v=2"></script>
 <script src="changelog.js?v=1"></script>
-<script src="guide.js?v=1"></script>
+<script src="guide.js?v=2"></script>
 </body>
 </html>
