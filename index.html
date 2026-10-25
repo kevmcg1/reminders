@@ -1011,6 +1011,7 @@
 <input type="file" id="fileInput" accept=".txt,text/plain" class="hidden">
 <div class="toast" id="toast"><i class="fa-solid fa-check"></i><span id="toastText"></span></div>
 
+<script src="nlp.js?v=1"></script>
 <script>
 /* =========================================================
    Reminders App — single file, localStorage persistence
@@ -1063,6 +1064,7 @@ const QUICK_ICONS = ['fa-flag', 'fa-star', 'fa-heart'];
 const HELP = [
   { icon: 'fa-calendar-day', title: 'Dates', ex: ['today', 'tomorrow', 'next monday', 'dec 25', '12/25', 'in 3 days', 'on the 5th'] },
   { icon: 'fa-clock', title: 'Times', ex: ['3pm', '3:30pm', 'at 15:00', 'noon', 'midnight', 'this evening', 'tomorrow morning'] },
+  { icon: 'fa-comment-dots', title: 'Say it in a sentence', ex: ['remind me in six hours to get groceries', 'in an hour and a half call mom', 'every other friday take out the trash', 'gym on mondays and wednesdays at 6pm', 'pay rent on the 1st of every month until dec 2027', 'in 2 hours 30 minutes, remind me again in 10 minutes'] },
   { icon: 'fa-wand-magic-sparkles', title: 'Date + time together', ex: ['call mom tomorrow at 9am', 'dentist dec 15 at 2pm', 'standup at 2pm'] },
   { icon: 'fa-repeat', title: 'Repeat', ex: ['every day', 'weekly', 'every 2 weeks', 'every weekday', 'hourly', 'every 3 days'] },
   { icon: 'fa-hourglass-half', title: 'Durations — for Repeat, Remind again, End', ex: ['13 mins', '2 hrs 3 mins', '90m', '1 hour 30 min'] },
@@ -1190,149 +1192,9 @@ function toLocalInput(d) {
 }
 
 function parseNaturalLanguage(text) {
-  const res = { due: null, repeat: null, urgency: null, checklist: null, dateSet: false, timeSet: false,
-                cleanTitle: text, matched: false, _exact: null };
-  if (!text || !text.trim()) return res;
-
-  let work = ' ' + text + ' ';
-  const now = new Date();
-  let m;
-  const strip = re => { const mm = work.match(re); if (mm) work = work.replace(mm[0], ' '); return mm; };
-
-  /* ---- REPEAT (produces a free-text label) ---- */
-  const normUnit = u => ({ min: 'minute', mins: 'minute', minute: 'minute', hr: 'hour', hrs: 'hour', hour: 'hour', day: 'day', week: 'week', month: 'month', year: 'year' }[u.toLowerCase()] || u.toLowerCase());
-  if ((m = strip(/\bevery\s+other\s+(minute|min|hour|hr|day|week|month|year)s?\b/i))) {
-    res.repeat = `Every 2 ${normUnit(m[1])}s`;
-  } else if ((m = strip(/\bevery\s+(\d+)\s+(minutes?|mins?|hours?|hrs?|days?|weeks?|months?|years?)\b/i))) {
-    const n = parseInt(m[1]);
-    const unit = normUnit(m[2].replace(/s$/, ''));
-    const named = { minute:'Every minute', hour:'Hourly', day:'Every day', week:'Every week', month:'Every month', year:'Every year' };
-    res.repeat = n === 1 ? named[unit] : `Every ${n} ${unit}s`;
-  } else if (strip(/\bevery\s+weekday(s)?\b/i)) {
-    res.repeat = 'Every weekday';
-  } else if (strip(/\bbi-?weekly\b/i)) {
-    res.repeat = 'Every 2 weeks';
-  } else if ((m = strip(/\b(hourly|daily|weekly|monthly|yearly|annually)\b/i))) {
-    res.repeat = { hourly:'Hourly', daily:'Every day', weekly:'Every week', monthly:'Every month', yearly:'Every year', annually:'Every year' }[m[1].toLowerCase()];
-  } else if ((m = strip(/\bevery\s+(hour|day|week|month|year)\b/i))) {
-    res.repeat = { hour:'Hourly', day:'Every day', week:'Every week', month:'Every month', year:'Every year' }[m[1].toLowerCase()];
-  }
-  strip(/\brepeat(s|ing|ed)?\b/i); // drop stray "repeat" keyword
-  strip(/\bremind me(?:\s+again)?\b/i); // "remind me every 10 mins" -> fluff removed
-
-  /* ---- URGENCY ---- "critical urgency", "high priority", "urgent" ---- */
-  const urgMap = { critical:'critical', urgent:'critical', high:'high', medium:'medium', moderate:'medium', normal:'medium', low:'low', none:'none', no:'none' };
-  let um = strip(/\b(critical|urgent|high|medium|moderate|normal|low|no)\s+(?:urgency|priority)\b/i)
-        || strip(/\b(?:urgency|priority)\s*[:=]?\s*(critical|urgent|high|medium|moderate|normal|low|none)\b/i);
-  if (um) res.urgency = urgMap[um[1].toLowerCase()] || null;
-  else if (strip(/\b(urgent|asap)\b/i)) res.urgency = 'critical';
-
-  /* ---- DATE ---- */
-  const weekdays = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday'];
-  const months = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
-  let dd = null, mo = null, yy = null;
-  const setD = d => { dd = d.getDate(); mo = d.getMonth(); yy = d.getFullYear(); res.dateSet = true; };
-  let tonight = false;
-
-  if ((m = strip(/\bin\s+(\d+)\s+(minute|min|hour|hr)s?\b/i))) {
-    const n = parseInt(m[1]), d = new Date(now);
-    if (/^h/i.test(m[2])) d.setHours(d.getHours() + n); else d.setMinutes(d.getMinutes() + n);
-    setD(d); res.timeSet = true;
-    res._exact = d; // exact datetime; build step uses this directly
-  }
-  else if (strip(/\btonight\b/i)) { setD(now); tonight = true; }
-  else if (strip(/\btoday\b/i)) { setD(now); }
-  else if (strip(/\b(tomorrow|tmrw|tmr)\b/i)) { const d = new Date(now); d.setDate(d.getDate()+1); setD(d); }
-  else if ((m = strip(/\bin\s+(\d+)\s+(day|week|month|year)s?\b/i))) {
-    const n = parseInt(m[1]), d = new Date(now), u = m[2].toLowerCase();
-    if (u === 'day') d.setDate(d.getDate()+n);
-    else if (u === 'week') d.setDate(d.getDate()+n*7);
-    else if (u === 'month') d.setMonth(d.getMonth()+n);
-    else if (u === 'year') d.setFullYear(d.getFullYear()+n);
-    setD(d);
-  }
-  else if ((m = strip(/\b(?:next\s+|this\s+)?(sunday|monday|tuesday|wednesday|thursday|friday|saturday)\b/i))) {
-    const target = weekdays.indexOf(m[1].toLowerCase());
-    const d = new Date(now);
-    let diff = (target - d.getDay() + 7) % 7;
-    if (diff === 0) diff = 7; // upcoming, never "today"
-    d.setDate(d.getDate() + diff);
-    setD(d);
-  }
-  else if ((m = strip(/\b(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?\s+(\d{1,2})(?:st|nd|rd|th)?\b/i))) {
-    mo = months.indexOf(m[1].toLowerCase().slice(0,3));
-    dd = parseInt(m[2]);
-    yy = now.getFullYear();
-    if (new Date(yy, mo, dd) < new Date(now.getFullYear(), now.getMonth(), now.getDate())) yy++;
-    res.dateSet = true;
-  }
-  else if ((m = strip(/\bon\s+the\s+(\d{1,2})(?:st|nd|rd|th)\b/i))) {
-    dd = parseInt(m[1]); mo = now.getMonth(); yy = now.getFullYear();
-    if (dd < now.getDate()) mo++;
-    res.dateSet = true;
-  }
-  else if ((m = strip(/\b(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?\b/))) {
-    mo = parseInt(m[1]) - 1; dd = parseInt(m[2]);
-    yy = m[3] ? (m[3].length === 2 ? 2000 + parseInt(m[3]) : parseInt(m[3])) : now.getFullYear();
-    res.dateSet = true;
-  }
-
-  /* ---- TIME ---- */
-  let hh = null, mi = null;
-  if ((m = strip(/\b(?:at\s+)?(\d{1,2})(?::(\d{2}))?\s*(am|pm)\b/i))) {
-    hh = parseInt(m[1]) % 12; if (m[3].toLowerCase() === 'pm') hh += 12;
-    mi = m[2] ? parseInt(m[2]) : 0; res.timeSet = true;
-  } else if ((m = strip(/\bat\s+(\d{1,2}):(\d{2})\b/i))) {
-    hh = parseInt(m[1]); mi = parseInt(m[2]); res.timeSet = true;
-  } else if (strip(/\b(noon|midday)\b/i)) { hh = 12; mi = 0; res.timeSet = true; }
-  else if (strip(/\bmidnight\b/i)) { hh = 0; mi = 0; res.timeSet = true; }
-  else if (strip(/\bmorning\b/i)) { hh = 9; mi = 0; res.timeSet = true; }
-  else if (strip(/\bafternoon\b/i)) { hh = 15; mi = 0; res.timeSet = true; }
-  else if (strip(/\bevening\b/i)) { hh = 19; mi = 0; res.timeSet = true; }
-  else if (tonight) { hh = 19; mi = 0; res.timeSet = true; }
-
-  /* ---- CHECKLIST ---- */
-  // "make a list containing X, Y, Z" / "checklist of A and B" / "list: a, b"
-  let lm = work.match(/\b(?:make|create|add|start|build|set\s*up)\s+(?:me\s+)?(?:a|an|the)?\s*(?:shopping\s+list|checklist|check\s*list|to-?do\s*list|list)\s*(?:containing|contains|of|with|that\s+has|having|including|include|:|-|–|=)?\s*(.+)$/i);
-  if (!lm) lm = work.match(/\b(?:checklist|check\s*list|to-?do\s*list)\s*(?:containing|contains|of|with|that\s+has|having|including|:|-|–|=)?\s*(.+)$/i);
-  if (lm && lm[1] && lm[1].trim()) {
-    const raw = lm[1].trim();
-    // With commas we also split on "and"; without, keep phrases like "mac and cheese" intact
-    const items = (/[,;\n]/.test(raw) ? raw.split(/\s*[,;\n]\s*|\s+and\s+/i) : raw.split(/\s*[;\n]\s*/))
-      .map(s => s.replace(/^and\s+/i, '').trim())
-      .filter(Boolean);
-    if (items.length) {
-      res.checklist = items;
-      work = work.replace(lm[0], ' ');
-    }
-  }
-
-  /* ---- BUILD DUE ---- */
-  if (res._exact) {
-    res.due = toLocalInput(res._exact); // "in N minutes/hours" — already exact
-  } else if (res.dateSet || res.timeSet) {
-    const d = new Date(now);
-    if (res.dateSet) { d.setFullYear(yy); d.setMonth(mo); d.setDate(dd); }
-    if (res.timeSet && hh !== null) d.setHours(hh, mi, 0, 0); else d.setHours(9, 0, 0, 0);
-    // only-a-time that already passed today rolls to tomorrow
-    if (res.timeSet && !res.dateSet && d < now) d.setDate(d.getDate() + 1);
-    res.due = toLocalInput(d);
-  }
-
-  /* ---- CLEAN TEXT (works for single-line titles and multi-line notes) ---- */
-  // Collapse runs of spaces/tabs but PRESERVE newlines so note formatting survives.
-  let clean = work.replace(/[^\S\n]{2,}/g, ' ');
-  clean = clean.replace(/[^\S\n]*[,;]+[^\S\n]*$/, '');       // stray trailing comma/semicolon
-  clean = clean.replace(/[^\S\n]+(at|on|by|from|every|the|in|next|this|and|with)[^\S\n]*$/i, '');
-  clean = clean.replace(/^[^\S\n]*(at|on|by)[^\S\n]+/i, '');
-  clean = clean.replace(/^[\s,;]+|[\s,;]+$/g, '');           // trim edge whitespace/commas
-  clean = clean.replace(/[^\S\n]{2,}/g, ' ').trim();
-  res.cleanTitle = clean;
-
-  res.matched = !!(res.dateSet || res.timeSet || res.repeat || res.urgency || (res.checklist && res.checklist.length));
-  return res;
+  // the reader lives in nlp.js (numbers as words, compound intervals, repeats on named days, ends, remind-again gaps, icons)
+  return window.RemNLP.parse(text);
 }
-
 
 function urgencyLabel(id) {
   const u = URGENCIES.find(x => x.id === id);
@@ -1344,8 +1206,11 @@ function detectionItems(p) {
   const items = [];
   if (p.due) items.push(['fa-calendar', 'Date & time', fmtDate(p.due)]);
   if (p.repeat) items.push(['fa-repeat', 'Repeat', p.repeat]);
+  if (p.endText) items.push(['fa-flag-checkered', 'Repeat ends', p.endText]);
+  if (p.snooze) items.push(['fa-bell', 'Remind again in', p.snooze]);
   if (p.urgency) items.push(['fa-gauge-high', 'Urgency', urgencyLabel(p.urgency)]);
   if (p.checklist && p.checklist.length) items.push(['fa-list-check', 'Checklist', `${p.checklist.length} item${p.checklist.length !== 1 ? 's' : ''}`]);
+  if (p.icon) items.push(['fa-icons', 'Icon', p.icon.replace('fa-', '').replace(/-/g, ' ')]);
   return items;
 }
 
@@ -1369,7 +1234,10 @@ function applyParse(reminder, parsed, key) {
   key = key || 'title';
   if (parsed.due) reminder.due = parsed.due;
   if (parsed.repeat) reminder.repeat = parsed.repeat;
+  if (parsed.endText) reminder.endText = parsed.endText;
+  if (parsed.snooze) reminder.snooze = parsed.snooze;
   if (parsed.urgency) reminder.urgency = parsed.urgency;
+  if (parsed.icon && !reminder.icon) reminder.icon = ICONS.includes(parsed.icon) ? parsed.icon : '';
   if (parsed.checklist && parsed.checklist.length) {
     parsed.checklist.forEach(text => reminder.checklist.push({ id: uid(), text, done: false }));
   }
@@ -2427,7 +2295,7 @@ function init() {
 
 document.addEventListener('DOMContentLoaded', init);
 </script>
-<script src="version.js?v=1"></script>
+<script src="version.js?v=2"></script>
 <script src="changelog.js?v=1"></script>
 <script src="guide.js?v=1"></script>
 </body>
