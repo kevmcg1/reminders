@@ -10,6 +10,10 @@
    "change the time to 5:41 PM" typed over an open reminder, lists in the notes, and every example the typing guide promises.
    "First-timer" is open-ended too, but acts like someone using a computer for the first time (missed and double clicks, hammering, typos, wrong boxes, wandering off).
    "Free run" is the open-ended mode. Runs keep going when the tab is in the background, and time can be sped up (10 or more actions a second).
+   Notifications: the browser's notification API is replaced by a fake for the whole run (no real permission prompt, no real notification), so the tester
+   can switch notifications on, off and blocked, check the sidebar card ("Notifications are on / off" and its "Find out how to enable / disable" help dialog,
+   with the right browsers for Windows and for a Mac), the "tab must stay open" pop up, and that a due reminder notifies once and a completed or old one never does.
+   Pop ups bubble in and out: it checks they grow to full size, settle, and hide for good (not clickable) when closed.
    YOUR DATA IS SAFE: while a run is on, the app's two localStorage entries (reminders and settings) are redirected into a scratch copy in memory,
    the app starts from an empty scratch list, and when the run ends your own reminders and settings are put back exactly as they were.
    ===================================================================== */
@@ -159,8 +163,10 @@ function logLine(cls, text) { T.log.push({ cls, text, t: Date.now() }); if (T.lo
    While a run is on, reads and writes of the app's two storage keys go to a Map in memory. The real localStorage is never touched, so closing the
    tab mid-run cannot lose anything. When the run ends the app's own state is put back from a copy taken before the run. */
 const SBX = { on: false, store: new Map(), backup: null };
-const isAppKey = (k) => k === A.STORE_KEY || k === A.SETTINGS_KEY || k === A.SAVE_NOTE_KEY;
-const DEFAULT_SETTINGS = () => ({ theme: 'midnight', density: 'cozy', groupCompleted: true, completedCollapsed: false, confirmDelete: false, spellcheck: true });
+const isAppKey = (k) => k === A.STORE_KEY || k === A.SETTINGS_KEY || k === A.SAVE_NOTE_KEY || k === 'reminders.notified.v1';
+// a fake Notification for the run: permission can be default, granted or denied, and everything "shown" is recorded instead of really shown
+const NS = { perm: 'default', deny: false, shown: [], real: null };
+const DEFAULT_SETTINGS = () => ({ theme: 'midnight', density: 'cozy', groupCompleted: true, completedCollapsed: false, confirmDelete: false, spellcheck: true, notify: false });
 function sandboxBegin() {
   if (SBX.on) return;
   const real = (k) => { try { return localStorage.getItem(k); } catch (e) { return null; } };
@@ -204,6 +210,14 @@ function hook() {
   swap(Storage.prototype, 'getItem', (o) => function (k) { return SBX.on && this === localStorage && isAppKey(k) ? (SBX.store.has(k) ? SBX.store.get(k) : null) : o.apply(this, arguments); });
   swap(Storage.prototype, 'setItem', (o) => function (k, v) { if (SBX.on && this === localStorage && isAppKey(k)) { SBX.store.set(k, String(v)); T.counters.storageWrites++; return; } return o.apply(this, arguments); });
   swap(Storage.prototype, 'removeItem', (o) => function (k) { if (SBX.on && this === localStorage && isAppKey(k)) { SBX.store.delete(k); return; } return o.apply(this, arguments); });
+  if (typeof window.Notification === 'function') {
+    NS.real = window.Notification;
+    class FakeNotification { constructor(title, o) { NS.shown.push({ title, body: o && o.body, tag: o && o.tag }); this.close = () => {}; }
+      static get permission() { return NS.perm; }
+      static requestPermission() { NS.perm = NS.deny ? 'denied' : 'granted'; return Promise.resolve(NS.perm); } }
+    swap(window, 'Notification', () => FakeNotification);
+    if (navigator.serviceWorker) swap(navigator.serviceWorker, 'register', () => () => Promise.reject(new Error('no service worker while testing')));   // so a notification goes through the fake
+  }
   swap(HTMLInputElement.prototype, 'click', (o) => function () { if (this.type === 'file') { T.counters.filePickerBlocked++; return; } return o.apply(this, arguments); });
   swap(URL, 'createObjectURL', (o) => function (b) { const u = o.call(URL, b); T.blobs.set(u, b); if (T.blobs.size > 20) T.blobs.delete(T.blobs.keys().next().value); return u; });
   swap(HTMLAnchorElement.prototype, 'click', (o) => function () {
@@ -216,7 +230,6 @@ function hook() {
   swap(window, 'confirm', () => function () { T.counters.dialogs++; return true; });
   swap(window, 'prompt', () => function () { T.counters.dialogs++; return ''; });
   // never show the browser's real notification permission prompt
-  if (window.Notification && Notification.requestPermission) swap(Notification, 'requestPermission', () => function () { T.counters.notifBlocked++; return Promise.resolve(Notification.permission); });
   swap(Element.prototype, 'setPointerCapture', (o) => function () { try { return o.apply(this, arguments); } catch (e) { /* synthetic pointer ids have no capture */ } });
   swap(Element.prototype, 'releasePointerCapture', (o) => function () { try { return o.apply(this, arguments); } catch (e) { /* same */ } });
   // the tester must never leave the page: no link that goes anywhere but a spot on this page may be followed
@@ -490,6 +503,7 @@ function checkSettingsDom() {
   if (!check('theme and density on the page match the settings', b.dataset.theme === st.theme && b.dataset.density === st.density)) find('state', 'error', `The page shows theme "${b.dataset.theme}", ${b.dataset.density} but the settings say "${st.theme}", ${st.density}`, { where: 'theme' });
   const wrong = [['densityToggle', st.density === 'compact'], ['groupToggle', st.groupCompleted], ['confirmDelToggle', st.confirmDelete], ['spellcheckToggle', st.spellcheck]].filter(([id, v]) => t(id) !== null && t(id) !== v).map(([id]) => id);
   if (!check('the settings switches match the settings', wrong.length === 0)) find('state', 'error', 'These switches disagree with the saved settings: ' + wrong.join(', '), { where: wrong.join(',') });
+  const nt = t('notifyToggle'), card = $('#notifyStatus'); if (nt !== null) { const want = !!st.notify && NS.perm === 'granted'; if (!check('the notifications switch and the sidebar card match', nt === want && (!card || card.hidden || (/are on/.test(card.textContent) === want)))) find('state', 'error', `The notifications switch shows ${nt ? 'on' : 'off'} and the card says "${card ? squash(card.querySelector('#notifyMsg').textContent) : '?'}" but notifications should be ${want ? 'on' : 'off'}`, { where: 'notify' }); }
   const sw = $('.theme-swatch.sel'); if (sw && !check('the highlighted theme is the chosen one', sw.dataset.themeId === st.theme)) find('state', 'warn', 'The highlighted theme swatch is not the chosen theme', { where: 'swatch' });
 }
 // text the app wrote itself must never show NaN, Invalid Date, undefined, null or [object ...]
@@ -503,7 +517,7 @@ function checkChrome() {
   if (head && f && app) { const h = head.getBoundingClientRect(), m = app.getBoundingClientRect(), b = f.getBoundingClientRect(); if (!check('header, app and footer stack in order without overlap', h.bottom <= m.top + 1 && m.bottom <= b.top + 1 && b.bottom <= innerHeight + 1 && h.top >= -1)) find('layout', 'error', `The header, the app and the footer overlap or run off the window (header bottom ${Math.round(h.bottom)}, app ${Math.round(m.top)}-${Math.round(m.bottom)}, footer top ${Math.round(b.top)}, window ${innerHeight})`, { where: 'stack' }); }
   const mark = $('.logo-mark'), chip = byId('versionChip');
   if (!check('the logo is named Reminders and the version chip sits under it', !!mark && mark.getAttribute('aria-label') === 'Reminders' && !!chip && chipUnderLogo(mark, chip) && !!window.__REM && chip.textContent.includes('v' + window.__REM.version))) find('chrome', 'error', 'The logo or the version chip under it is missing or out of place', { where: 'logo' });
-  if (!check('notifications are gone', !byId('notifStatus') && !byId('notifOverlay') && !$('.notif-warning') && !/notification/i.test(($('.sidebar') || {}).innerText || ''))) find('chrome', 'error', 'Something about notifications is still on the page', { where: 'notifications' });
+  if (!check('notifications are gone', !byId('notifStatus') && !byId('notifOverlay') && !$('.notif-warning') && !/notification/i.test([...(($('.sidebar') || { children: [] }).children)].filter((c) => c.id !== 'notifyStatus').map((c) => c.innerText).join(' ')))) find('chrome', 'error', 'Something from the old notifications is still on the page (only the Notifications card is allowed)', { where: 'notifications' });
 }
 function checkText() {
   const skip = '#devtest, script, style, .ri-title, .full-title, #delText, .cl-text, textarea, .help-ex';
@@ -607,7 +621,21 @@ const byId = (id) => document.getElementById(id);
 function chipUnderLogo(mark, chip) { let n = mark && mark.nextElementSibling; if (n && n.classList.contains('stable-row')) n = n.nextElementSibling; return !!n && !!chip && n.contains(chip); }
 const rowOf = (id) => $(`#listScroll .reminder-item[data-id="${id}"]`);
 const rows = () => $$('#listScroll .reminder-item');
-async function settle() { await raf(); await raf(); }
+async function animsDone(el) {   // wait for every pop-up animation under an element, in real time (the run's own timers can be sped up, CSS animations are not)
+  const run = el.getAnimations({ subtree: true }).filter((x) => { try { return x.effect.getComputedTiming().iterations !== Infinity; } catch (e) { return false; } });
+  if (run.length) await Promise.allSettled(run.map((x) => x.finished));   // no time limit on purpose: the run's own timers can be sped up, and a finite animation always ends
+  await raf();
+}
+async function popDone(el) {   // wait for a card that is bubbling in to finish growing before its size and place are measured
+  const run = el.getAnimations().filter((x) => { try { return x.effect.getComputedTiming().iterations !== Infinity; } catch (e) { return false; } });
+  if (run.length) await Promise.allSettled(run.map((x) => x.finished));
+}
+async function settle() {
+  await raf(); await raf();
+  // dialogs and the walkthrough card bubble in over about half a second: measure them once they have settled, never mid-pop
+  const run = (document.getAnimations ? document.getAnimations() : []).filter((x) => { try { return x.playState === 'running' && x.effect.getComputedTiming().iterations !== Infinity; } catch (e) { return false; } });
+  if (run.length) await Promise.allSettled(run.map((x) => x.finished));
+}
 // writes a first title and pauses, the way a person does, so the one-time cache note comes up
 async function noteWrite() { const t = byId('d-title'); if (t) { t.focus(); setValue(t, 'milk'); t.dispatchEvent(new Event('input', { bubbles: true })); } await sleep(1700); await settle(); }
 function baselineData() {
@@ -858,6 +886,69 @@ const MACROS = {
     await click('#wipeBtn'); await click('#wipeConfirm'); expect('Delete everything empties the app and saves that', A.reminders.length === 0 && A.selectedId === null && SBX.store.get(A.STORE_KEY) === '[]', 'Wiping did not empty the reminders and the saved copy', 'wipe confirm');
     feature('settings journeys');
   },
+  async 'notifications'() {
+    seedData([], null); SBX.store.delete(A.SAVE_NOTE_KEY); const fm = window.__notify, perm0 = NS.perm, deny0 = NS.deny; NS.perm = 'default'; NS.deny = false; NS.shown.length = 0;
+    const card = byId('notifyStatus'), msg = () => squash(byId('notifyMsg').textContent), btn = () => squash(byId('notifyHowBtn').textContent), links = () => $$('#notifyHowGrid a.browser-btn').map((a) => squash(a.textContent));
+    const stored = () => JSON.parse(SBX.store.get(A.SETTINGS_KEY) || '{}');
+    const pad = (n) => String(n).padStart(2, '0'), at = (ms) => { const d = new Date(Date.now() + ms); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`; };
+    try {
+      if (!fm) { expect('the notifications script is loaded', false, 'window.__notify is missing: notify.js did not load', 'notify missing'); return; }
+      A.settings.notify = false; A.saveSettings(); A.syncSettingToggles();
+      // the card is always there, at the bottom of the left sidebar
+      const lr = byId('listScroll').getBoundingClientRect(), cr = card.getBoundingClientRect(), fr = $('.sidebar-footer').getBoundingClientRect();
+      expect('the sidebar always shows a notifications card', !card.hidden && cr.height > 20, 'The notifications card is not showing in the sidebar', 'card shown');
+      expect('the card sits at the bottom of the left sidebar, under the list and above the buttons', cr.top >= lr.bottom - 1 && cr.bottom <= fr.top + 1 && $('#sidebar').contains(card), 'The card is not at the bottom of the left sidebar', 'card place');
+      expect('before it is switched on the card says "Notifications are off" and "Find out how to enable"', msg() === 'Notifications are off' && btn() === 'Find out how to enable', `The card says "${msg()}" and the button "${btn()}"`, 'card off words');
+      await click('#notifyHowBtn'); const ov = byId('notifyHowOverlay');
+      expect('"Find out how to enable" opens a dialog that explains it, with a Turn on button', ov.classList.contains('show') && !byId('notifyHowText').hidden && byId('notifyHowLinks').hidden && !byId('notifyHowGo').hidden && /Allow/.test(byId('notifyHowText').textContent), 'The how-to-enable dialog did not open with its explanation and Turn on button', 'how enable');
+      await click('#notifyHowOk'); expect('Done closes it', !ov.classList.contains('show'), 'Done did not close the dialog', 'how done');
+      // turn on from the dialog: asks the (fake) browser, then the tab-must-stay-open pop up
+      await settle(); await click('#notifyHowBtn'); await settle(); byId('notifyHowGo').click();   /* a direct click: the tester's own panel can sit over this button */ await settle(); const note = byId('notifyNoteOverlay');
+      expect('turning on shows the pop up about keeping the tab open, with its exact words', note.classList.contains('show') && squash(note.textContent).includes('Reminders will only pop up with this tab being open. So, you can still have it open somewhere in the background.'), `The keep-the-tab-open pop up did not come up when notifications turned on (fake permission ${NS.perm}, deny ${NS.deny}, setting ${A.settings.notify}, Notification is ${window.Notification === NS.real ? 'the real one' : 'the fake'}, how dialog ${ov.classList.contains('show')}, how go hidden ${byId('notifyHowGo').hidden})`, 'note on');
+      await click('#notifyNoteOk'); expect('Got it! closes that pop up', !note.classList.contains('show'), 'Got it! did not close the notifications pop up', 'note ok');
+      expect('now the card says "Notifications are on" with "Find out how to disable"', msg() === 'Notifications are on' && btn() === 'Find out how to disable' && !card.classList.contains('off'), `The card says "${msg()}" and the button "${btn()}"`, 'card on words');
+      expect('the switch is on and the choice is saved', byId('notifyToggle').classList.contains('on') && stored().notify === true, 'The switch or the saved setting does not match', 'saved on');
+      // the disable help: the right browsers
+      await click('#notifyHowBtn'); const win = ['Google Chrome', 'Firefox', 'Brave', 'Opera GX', 'Microsoft Edge'];
+      expect('the disable help lists Chrome, Firefox, Brave, Opera GX and Edge', JSON.stringify(links()) === JSON.stringify(win), 'The browsers listed are ' + links().join(', '), 'how list');
+      expect('each browser button has its icon and a help page that opens in a new tab', $$('#notifyHowGrid a.browser-btn').every((a) => !!a.querySelector('svg,i') && /^https:\/\//.test(a.href) && a.origin !== location.origin && a.target === '_blank' && /noopener/.test(a.rel)), 'A browser button has no icon or does not open its own help page in a new tab', 'how links');
+      await click('#notifyHowOk');
+      const mac = (on) => { try { if (on) { Object.defineProperty(navigator, 'platform', { value: 'MacIntel', configurable: true }); Object.defineProperty(navigator, 'userAgentData', { value: undefined, configurable: true }); } else { delete navigator.platform; delete navigator.userAgentData; } } catch (e) { /* ignore */ } fm.buildHelp(); fm.render(); };
+      mac(true); await click('#notifyHowBtn'); const ml = links(); mac(false);
+      expect('on a Mac the help lists every common browser', ['Safari', 'Google Chrome', 'Firefox', 'Microsoft Edge', 'Brave', 'Opera', 'Opera GX'].every((b) => ml.includes(b)), 'On a Mac the browsers listed are ' + ml.join(', '), 'how mac'); closeOverlays(); feature('notification help opened');
+      // a due reminder notifies once; completed, old and not-yet-due ones never do
+      const due = mkRem({ title: 'Call the bank', notes: 'about the card', due: at(-60000) }), done = mkRem({ title: 'Already done', due: at(-60000), completed: true }), old = mkRem({ title: 'Long ago', due: '2020-01-01T09:00' }), later = mkRem({ title: 'Tomorrow thing', due: tomorrow9() });
+      A.reminders = [due, done, old, later]; A.save(); A.render(); NS.shown.length = 0; await fm.tick(); await settle();
+      expect('a due reminder notifies, once, with its title', NS.shown.length === 1 && NS.shown[0].title === 'Call the bank', `Notifications shown: ${NS.shown.map((x) => x.title).join(', ') || 'none'}`, 'notify due');
+      await fm.tick(); await fm.tick(); expect('it does not notify again', NS.shown.length === 1, 'The same reminder notified again', 'notify dup');
+      due.due = at(-120000); await fm.tick(); expect('moving its time makes it notify again at the new time', NS.shown.length === 2, 'A changed time did not notify', 'notify moved');
+      expect('completed, long-ago and future reminders never notify', !NS.shown.some((x) => /Already done|Long ago|Tomorrow/.test(x.title)), 'A completed, very old or future reminder notified', 'notify never');
+      // off again
+      await click('#settingsBtn'); await click('#notifyToggle'); await click('#settingsClose');
+      expect('switching it off turns the card back to "Notifications are off"', msg() === 'Notifications are off' && stored().notify === false, `The card says "${msg()}"`, 'card off again');
+      A.reminders.push(mkRem({ title: 'After off', due: at(-60000) })); A.save(); A.render(); const n0 = NS.shown.length; await fm.tick(); expect('nothing notifies while it is off', NS.shown.length === n0, 'A notification came while notifications were off', 'notify off');
+      // blocked by the browser: help to allow
+      NS.perm = 'default'; NS.deny = true; await click('#settingsBtn'); await click('#notifyToggle'); await settle(); const blocked = byId('notifyNoteOverlay').classList.contains('show');
+      expect('when the browser blocks it, no pop up and the card stays "off"', !blocked && msg() === 'Notifications are off' && !byId('notifyToggle').classList.contains('on'), 'A blocked request still looked like it turned on', 'blocked'); closeOverlays();
+      NS.perm = 'denied'; fm.render(); await click('#notifyHowBtn');
+      expect('a blocked browser gets the browser help links, to allow it', !byId('notifyHowLinks').hidden && links().length === 5 && /allow/i.test(byId('notifyHowHead').textContent), 'The blocked state did not show how to allow', 'blocked help'); closeOverlays();
+      feature('notifications journey');
+    } finally { NS.perm = perm0; NS.deny = deny0; try { delete navigator.platform; delete navigator.userAgentData; } catch (e) { /* ignore */ } A.settings.notify = false; A.saveSettings(); A.syncSettingToggles(); closeOverlays(); }
+  },
+  async 'bubble pop ups'() {
+    seedData([], null);
+    for (const id of ['settingsOverlay', 'helpOverlay', 'wipeOverlay', 'notifyHowOverlay']) {
+      const o = byId(id), m = o.querySelector('.modal'), scaleOf = () => new DOMMatrix(getComputedStyle(m).transform).a, vis = () => getComputedStyle(o).visibility;
+      closeOverlays(); await animsDone(o); expect(id + ' is hidden and cannot be clicked while closed', vis() === 'hidden' && getComputedStyle(o).pointerEvents === 'none', id + ' is still reachable while closed', 'bubble closed ' + id);
+      o.classList.add('show'); const early = scaleOf(), growing = o.getAnimations({ subtree: true }).length > 0; await animsDone(o);
+      expect(id + ' starts small and grows to full size', early < 0.99 && growing && Math.abs(scaleOf() - 1) < 0.01 && vis() === 'visible', `${id} scale started at ${early.toFixed(2)} (animating: ${growing}) and ended at ${scaleOf().toFixed(2)}`, 'bubble grow ' + id);
+      o.classList.remove('show'); const shrinking = o.getAnimations({ subtree: true }).length > 0; await animsDone(o);
+      expect(id + ' shrinks away and then is hidden for good', shrinking && scaleOf() < 0.99 && vis() === 'hidden' && +getComputedStyle(o).opacity === 0, `${id} did not shrink and hide (animating: ${shrinking}, scale ${scaleOf().toFixed(2)}, ${vis()})`, 'bubble shrink ' + id);
+    }
+    const t = byId('toast'); t.classList.remove('show'); await animsDone(t); t.classList.add('show'); const tEarly = new DOMMatrix(getComputedStyle(t).transform).a; await animsDone(t);
+    expect('the small message at the bottom bubbles up and settles at full size', tEarly < 0.99 && Math.abs(new DOMMatrix(getComputedStyle(t).transform).a - 1) < 0.01 && +getComputedStyle(t).opacity > 0.99, 'The toast did not grow and settle at full size (it started at ' + tEarly.toFixed(2) + ')', 'bubble toast'); t.classList.remove('show');
+    closeOverlays(); feature('bubble pop ups');
+  },
   async 'first reminder note and browser help'() {
     seedData([], null); SBX.store.delete(A.SAVE_NOTE_KEY); T.noteOn = true;
     try {
@@ -901,7 +992,7 @@ const MACROS = {
       expect('the walkthrough opens with a card, a dim layer and a progress bar', g.isOpen && !!$('.gd-card') && !!$('.gd-hole') && $$('.gd-bar i').length === g.steps && document.body.classList.contains('guiding'), 'The walkthrough did not open properly', 'guide open');
       const n0 = A.reminders.length; let guard = 0, shownSteps = 0;
       while (g.isOpen && guard++ < g.steps + 6) {
-        const card = $('.gd-card'); if (card && !$('.overlay.show')) { shownSteps++; const r = card.getBoundingClientRect(); expect('the walkthrough card stays fully on screen', r.left >= -1 && r.top >= -1 && r.right <= innerWidth + 1 && r.bottom <= innerHeight + 1, `The walkthrough card ran off the window at step ${g.step + 1}`, 'guide card ' + g.step); }
+        const card = $('.gd-card'); if (card && !$('.overlay.show')) { shownSteps++; await popDone(card); const r = card.getBoundingClientRect(); expect('the walkthrough card stays fully on screen', r.left >= -1 && r.top >= -1 && r.right <= innerWidth + 1 && r.bottom <= innerHeight + 1, `The walkthrough card ran off the window at step ${g.step + 1}`, 'guide card ' + g.step); }
         const before = g.step, as = $('.gd-assist:not(.gd-del)'), nx = $('.gd-next');
         if ($('.overlay.show')) { const ok = byId('saveNoteOk'); if (ok && visible(ok)) await click(ok); else closeOverlays(); await settle(); continue; }
         if (as && chance(0.7)) { as.click(); await until(() => g.step !== before || !g.isOpen || $('.overlay.show'), 3500); if (g.step === before && g.isOpen && !$('.overlay.show') && $('.gd-next')) $('.gd-next').click(); }
@@ -1276,7 +1367,7 @@ Object.assign(MACROS, {
   async 'dialogs fit the window'() {
     seedData([], null);
     for (const id of OVERLAYS.concat('changelogOverlay')) {
-      closeOverlays(); byId(id).classList.add('show'); await sleep(260); const m = byId(id).querySelector('.modal'); if (!m) continue; const r = m.getBoundingClientRect(), scrolls = m.scrollHeight > m.clientHeight + 1;
+      closeOverlays(); byId(id).classList.add('show'); await animsDone(byId(id)); /* they bubble in over about half a second */ const m = byId(id).querySelector('.modal'); if (!m) continue; const r = m.getBoundingClientRect(), scrolls = m.scrollHeight > m.clientHeight + 1;
       expect(id + ' stays inside the window', r.top >= -2 && r.bottom <= innerHeight + 2, `${id} spans y ${Math.round(r.top)}..${Math.round(r.bottom)} in a ${innerHeight}px window (it is cut off)`, 'fit ' + id);
       expect(id + ' scrolls when it is taller than the window', !scrolls || /auto|scroll/.test(getComputedStyle(m).overflowY), `${id} has ${m.scrollHeight}px of content in ${m.clientHeight}px and does not scroll`, 'scroll ' + id);
       if (scrolls) { m.scrollTop = m.scrollHeight; await raf(); const last = [...m.children].filter((e) => visible(e)).pop(); if (last) { const q = last.getBoundingClientRect(); expect(id + ' can be scrolled to its last part', q.bottom <= innerHeight + 2, `The end of ${id} stays below the window after scrolling (${Math.round(q.bottom)} of ${innerHeight})`, 'end ' + id); } }
@@ -1287,10 +1378,14 @@ Object.assign(MACROS, {
     seedData([], null); SBX.store.delete(A.SAVE_NOTE_KEY); T.guideOK = true; const g = window.__guide;
     try {
       if (!g) { expect('the walkthrough exists', false, 'The walkthrough is missing', 'wt missing'); return; }
-      await click('#guideBtn'); await settle(); let guard = 0, seen = { remind: false, change: false };
-      while (g.isOpen && guard++ < g.steps + 2) { const c = $('.gd-card'); if (c) { const tx = squash(c.textContent); if (/remind me to/i.test(tx) && /pick up the groceries at 5 PM/i.test(tx)) seen.remind = true; if (/change the time to 5:41 PM/i.test(tx)) seen.change = true; } const nx = $('.gd-next'); if (!nx || $('.overlay.show')) break; nx.click(); await settle(); }
+      let guard = 0, seen = { remind: false, change: false };
+      const readCard = () => { const c = $('.gd-card'); if (c) { const tx = squash(c.textContent); if (/remind me to/i.test(tx) && /pick up the groceries at 5 PM/i.test(tx)) seen.remind = true; if (/change the time to 5:41 PM/i.test(tx)) seen.change = true; } };
+      const mo = new MutationObserver(readCard); mo.observe(document.body, { subtree: true, childList: true, characterData: true });   // the walkthrough can move on by itself while the tester waits, so every card is read as it appears
+      await click('#guideBtn'); await settle();
+      while (g.isOpen && guard++ < g.steps + 2) { readCard(); const nx = $('.gd-next'); if (!nx || $('.overlay.show')) break; nx.click(); await settle(); }
       expect('the walkthrough tells people about "remind me to ..."', seen.remind, 'No step of "How do I use this?" explains "remind me to pick up the groceries at 5 PM"', 'wt remind');
       expect('the walkthrough tells people about "change the time to 5:41 PM"', seen.change, 'No step of "How do I use this?" explains "change the time to 5:41 PM"', 'wt change');
+      mo.disconnect();
       feature('walkthrough text checks');
     } finally { T.guideOK = false; try { g && g.close(); } catch (e) { /* ignore */ } closeOverlays(); }
   },
@@ -1356,7 +1451,7 @@ const MODES = {
 };
 const IMPORT_KINDS = ['wrapped', 'array', 'old', 'htmlTitles', 'notJson', 'emptyFile', 'wrongShape', 'weirdTypes', 'truncated', 'big', 'number', 'nullDoc', 'empty', 'emptyArr'];
 async function resetBase() { resetBaseline(); await settle(); }
-const OVERLAYS = ['settingsOverlay', 'helpOverlay', 'saveNoteOverlay', 'delOverlay', 'wipeOverlay'];
+const OVERLAYS = ['settingsOverlay', 'helpOverlay', 'saveNoteOverlay', 'delOverlay', 'wipeOverlay', 'notifyNoteOverlay', 'notifyHowOverlay'];
 // every control the app has: those on the list screen, those in the edit pane of a few different reminders, and those inside each dialog
 function discover() {
   const out = new Map(), add = (l) => { seenControls(l); l.forEach((c) => { if (!out.has(c.key)) out.set(c.key, c); }); };

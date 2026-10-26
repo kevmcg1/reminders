@@ -356,6 +356,8 @@
   .browser-btn .browser-ico { width: 22px; font-size: 18px; text-align: center; color: var(--text-dim); }
   .notify-card { margin: 0 12px 10px; padding: 12px; border: 1px solid var(--accent); border-radius: var(--radius-sm); background: var(--accent-soft); flex-shrink: 0; }
   .notify-card[hidden] { display: none; }
+  .notify-card.off { border-color: var(--border); background: var(--bg-elev-2); }
+  .notify-card.off .notify-msg i { color: var(--text-dim); }
   .notify-msg { display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 600; }
   .notify-msg i { color: var(--accent); width: 16px; text-align: center; }
   .notify-how-btn { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; margin-top: 10px; padding: 9px 10px; background: transparent; border: 1px solid var(--accent); border-radius: var(--radius-sm); color: var(--text); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; transition: var(--transition); }
@@ -683,10 +685,12 @@
   .overlay {
     position: fixed; inset: 0; background: rgba(0,0,0,0.6);
     backdrop-filter: blur(4px);
-    display: none; align-items: center; justify-content: center; z-index: 100;
+    display: flex; align-items: center; justify-content: center; z-index: 100;
     padding: 20px;
+    opacity: 0; visibility: hidden; pointer-events: none;   /* hidden dialogs stay laid out so they can bubble in and out */
+    transition: opacity 260ms ease, visibility 0s linear 260ms;
   }
-  .overlay.show { display: flex; }
+  .overlay.show { opacity: 1; visibility: visible; pointer-events: auto; transition: opacity 220ms ease, visibility 0s; }
   .modal {
     background: var(--bg-elev);
     border: 1px solid var(--border);
@@ -696,10 +700,12 @@
     padding: 28px;
     max-height: 100%; overflow-y: auto; overscroll-behavior: contain;   /* a tall dialog scrolls instead of running off the page */
     scrollbar-width: thin; scrollbar-color: var(--border) transparent;
-    animation: pop 180ms cubic-bezier(0.2, 0.8, 0.3, 1);
+    transform: scale(0.82) translateY(18px); opacity: 0; transform-origin: 50% 60%;
+    transition: transform 240ms cubic-bezier(0.4, 0, 0.6, 1), opacity 200ms ease;
   }
+  .overlay.show .modal { transform: none; opacity: 1; transition: transform 520ms cubic-bezier(0.34, 1.56, 0.64, 1), opacity 240ms ease; }
   .modal.wide { max-width: 520px; }
-  @keyframes pop { from { opacity: 0; transform: scale(0.94) translateY(10px); } to { opacity: 1; transform: none; } }
+  @keyframes pop { 0% { opacity: 0; transform: scale(0.8) translateY(14px); } 55% { opacity: 1; } 70% { transform: scale(1.04); } 100% { opacity: 1; transform: none; } }   /* a bubble: grows a little past full size, then settles */
 
   .modal-icon {
     width: 48px; height: 48px; border-radius: 12px;
@@ -777,14 +783,15 @@
 
   /* Toast */
   .toast {
-    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px);
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(60px) scale(0.8); transform-origin: 50% 100%;
     background: var(--bg-elev-2); border: 1px solid var(--border);
     padding: 12px 20px; border-radius: 10px; font-size: 13.5px; font-weight: 500;
     box-shadow: var(--shadow); z-index: 200; opacity: 0;
-    transition: all 300ms cubic-bezier(0.2, 0.8, 0.3, 1);
+    transition: transform 480ms cubic-bezier(0.34, 1.56, 0.64, 1), opacity 240ms ease;
     display: flex; align-items: center; gap: 10px; pointer-events: none;
   }
-  .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+  .toast.show { transform: translateX(-50%) translateY(0) scale(1); opacity: 1; }
+  @media (prefers-reduced-motion: reduce) { .overlay, .overlay.show, .modal, .overlay.show .modal, .toast { transition-duration: 1ms !important; transition-delay: 0s !important; } }
   .toast i { color: var(--accent); }
 
   .hidden { display: none !important; }
@@ -1008,11 +1015,15 @@
   <div class="modal" role="dialog" aria-modal="true" aria-labelledby="notifyHowHead">
     <div class="modal-icon neutral"><i class="fa-solid fa-bell-slash"></i></div>
     <h2 id="notifyHowHead">How to turn notifications off</h2>
-    <div class="cache-help-title" id="notifyHowTitle">Pick your browser.</div>
-    <div class="browser-grid" id="notifyHowGrid"></div>
-    <div class="cache-help-tip" id="notifyHowTip"></div>
+    <p id="notifyHowText" hidden>Switch on <strong>Push notifications</strong> and your browser will ask if this site can send notifications. Choose <strong>Allow</strong>. Reminders then pop up when they are due, as long as this tab stays open.</p>
+    <div id="notifyHowLinks">
+      <div class="cache-help-title" id="notifyHowTitle">Pick your browser.</div>
+      <div class="browser-grid" id="notifyHowGrid"></div>
+      <div class="cache-help-tip" id="notifyHowTip"></div>
+    </div>
     <div class="modal-actions">
-      <button class="btn btn-primary" id="notifyHowOk">Done</button>
+      <button class="btn" id="notifyHowOk">Done</button>
+      <button class="btn btn-primary" id="notifyHowGo" hidden>Turn on notifications</button>
     </div>
   </div>
 </div>
@@ -2369,6 +2380,7 @@ function syncSettingToggles() {
   document.getElementById('groupToggle').classList.toggle('on', settings.groupCompleted);
   document.getElementById('confirmDelToggle').classList.toggle('on', settings.confirmDelete);
   document.getElementById('spellcheckToggle').classList.toggle('on', settings.spellcheck);
+  if (window.__notify) window.__notify.render();   // the notifications switch and the sidebar card follow the settings too
   document.querySelectorAll('.toggle[role=switch]').forEach(t => t.setAttribute('aria-checked', t.classList.contains('on')));
 }
 
@@ -2526,13 +2538,13 @@ function init() {
     e.preventDefault(); e.stopPropagation(); window.__devApi = api();
     if (window.DevTest) { window.DevTest.toggle(); return; }
     if (loading) return; loading = true;
-    const sc = document.createElement('script'); sc.src = 'devtest.js?v=2'; sc.onload = () => { loading = false; window.DevTest && window.DevTest.toggle(true); }; sc.onerror = () => { loading = false; toast('Could not load the dev tool (devtest.js)'); };
+    const sc = document.createElement('script'); sc.src = 'devtest.js?v=3'; sc.onload = () => { loading = false; window.DevTest && window.DevTest.toggle(true); }; sc.onerror = () => { loading = false; toast('Could not load the dev tool (devtest.js)'); };
     document.head.appendChild(sc);
   }, true);
   /* ?dev=quick | standard | thorough | problems | newbie | speed | free opens the tester and starts that run by itself */
   const auto = /[?&]dev=(quick|standard|thorough|problems|newbie|speed|free)\b/.exec(location.search);
   if (auto) setTimeout(() => {
-    window.__devApi = api(); const sc = document.createElement('script'); sc.src = 'devtest.js?v=2';
+    window.__devApi = api(); const sc = document.createElement('script'); sc.src = 'devtest.js?v=3';
     sc.onload = () => { window.DevTest.toggle(true); const m = document.getElementById('dtMode'); if (m) { m.value = auto[1]; m.onchange && m.onchange(); } const go = document.querySelector('#devtest [data-a=start]'); if (go) go.click(); };
     document.head.appendChild(sc);
   }, 2500);
@@ -2542,7 +2554,7 @@ document.addEventListener('DOMContentLoaded', init);
 </script>
 <script src="version.js?v=5"></script>
 <script src="changelog.js?v=2"></script>
-<script src="guide.js?v=2"></script>
-<script src="notify.js?v=4"></script>
+<script src="guide.js?v=4"></script>
+<script src="notify.js?v=6"></script>
 </body>
 </html>

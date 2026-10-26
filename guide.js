@@ -68,7 +68,8 @@
 .gd-hand{position:fixed;left:0;top:0;width:34px;height:34px;font-size:30px;line-height:1;color:#fff;pointer-events:none;filter:drop-shadow(0 2px 4px rgba(0,0,0,.7));animation:gd-tap 1.3s ease-in-out infinite}
 .gd-hand[hidden]{display:none}
 @keyframes gd-tap{0%,100%{margin:0}45%{margin:-6px 0 0 -6px}60%{margin:-2px 0 0 -2px}}
-.gd-card{position:fixed;left:0;top:0;width:min(340px,calc(100vw - 24px));pointer-events:auto;background:var(--bg-elev);color:var(--text);border:1px solid var(--border);border-radius:14px;box-shadow:0 18px 50px rgba(0,0,0,.55);padding:16px 18px 14px;font-size:13.5px;line-height:1.55;animation:pop 180ms cubic-bezier(.2,.8,.3,1)}
+.gd-card{position:fixed;left:0;top:0;width:min(340px,calc(100vw - 24px));pointer-events:auto;background:var(--bg-elev);color:var(--text);border:1px solid var(--border);border-radius:14px;box-shadow:0 18px 50px rgba(0,0,0,.55);padding:16px 18px 14px;font-size:13.5px;line-height:1.55;animation:gd-bubble 480ms cubic-bezier(.34,1.2,.64,1)}
+@keyframes gd-bubble{0%{opacity:0;scale:.8}55%{opacity:1}70%{scale:1.04}100%{opacity:1;scale:1}}   /* uses scale, not transform: the card is placed with an inline transform that an animation would override */
 .gd-badge{display:inline-flex;align-items:center;gap:7px;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--gd-c,var(--accent));margin-bottom:6px}
 .gd-badge::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--gd-c,var(--accent))}
 .gd-card h4{margin:0 28px 8px 0;font-size:16px;font-weight:600;letter-spacing:-.01em}
