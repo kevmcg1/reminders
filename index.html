@@ -353,6 +353,13 @@
   .browser-btn { display: flex; align-items: center; gap: 12px; padding: 10px 12px; background: var(--bg-elev-2); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text); text-decoration: none; font-size: 14px; font-weight: 500; transition: var(--transition); }
   .browser-btn:hover, .browser-btn:focus-visible { border-color: var(--accent); background: var(--bg-hover); outline: none; }
   .browser-btn svg { width: 22px; height: 22px; flex-shrink: 0; }
+  .browser-btn .browser-ico { width: 22px; font-size: 18px; text-align: center; color: var(--text-dim); }
+  .notify-status { margin-top: 6px; padding: 12px 14px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--bg-elev-2); }
+  .notify-status[hidden], .notify-how[hidden] { display: none; }
+  .notify-msg { display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 500; }
+  .notify-msg i { color: var(--accent); width: 16px; text-align: center; }
+  .notify-status .btn { margin-top: 10px; }
+  .notify-how { margin-top: 12px; }
   .browser-btn span { flex: 1; }
   .browser-btn > i { font-size: 11px; color: var(--text-faint); }
   .cache-help-tip { font-size: 12px; color: var(--text-faint); margin-top: 10px; line-height: 1.5; }
@@ -946,6 +953,26 @@
       </div>
     </div>
 
+    <div class="settings-section" id="notifySection">
+      <h3>Notifications</h3>
+      <div class="setting-row">
+        <div>
+          <div class="label">Push notifications</div>
+          <div class="sub" id="notifySub"></div>
+        </div>
+        <div class="toggle" id="notifyToggle" role="switch" tabindex="0" aria-label="Push notifications"></div>
+      </div>
+      <div class="notify-status" id="notifyStatus" hidden>
+        <div class="notify-msg"><i id="notifyIco" class="fa-solid fa-bell" aria-hidden="true"></i><span id="notifyMsg" role="status">Notifications are on</span></div>
+        <button class="btn" id="notifyHowBtn" aria-expanded="false" aria-controls="notifyHow"><i class="fa-solid fa-circle-question"></i> Find out how to disable</button>
+        <div class="notify-how" id="notifyHow" hidden>
+          <div class="cache-help-title" id="notifyHowTitle">Pick your browser.</div>
+          <div class="browser-grid" id="notifyHowGrid"></div>
+          <div class="cache-help-tip" id="notifyHowTip"></div>
+        </div>
+      </div>
+    </div>
+
     <div class="settings-section">
       <h3>Data</h3>
       <div class="data-btns">
@@ -1086,7 +1113,7 @@ function isPresetSnooze(v) { return SNOOZE.includes(v); }
 
 /* ---------- State ---------- */
 let reminders = [];
-let settings = { theme: 'midnight', density: 'cozy', groupCompleted: true, completedCollapsed: false, confirmDelete: false, spellcheck: true };
+let settings = { theme: 'midnight', density: 'cozy', groupCompleted: true, completedCollapsed: false, confirmDelete: false, spellcheck: true, notify: false };
 let selectedId = null;
 let pendingDeleteId = null;
 let dragId = null;
@@ -2493,8 +2520,9 @@ function init() {
 
 document.addEventListener('DOMContentLoaded', init);
 </script>
-<script src="version.js?v=4"></script>
+<script src="version.js?v=5"></script>
 <script src="changelog.js?v=2"></script>
 <script src="guide.js?v=2"></script>
+<script src="notify.js?v=1"></script>
 </body>
 </html>
