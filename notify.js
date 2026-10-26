@@ -13,7 +13,7 @@
   const readSeen = () => { try { return JSON.parse(localStorage.getItem(NOTIFIED_KEY)) || {}; } catch (e) { return {}; } };
   const writeSeen = o => { try { localStorage.setItem(NOTIFIED_KEY, JSON.stringify(o)); } catch (e) {} };
 
-  let swReg = null, askedAndBlocked = false;   // the blocked notice only shows after the person tried to turn notifications on
+  let swReg = null;
   async function register() {
     if (swReg || !('serviceWorker' in navigator)) return swReg;
     try { swReg = await navigator.serviceWorker.register('sw.js'); } catch (e) { swReg = null; }
@@ -79,17 +79,19 @@
 
   function render() {
     const tg = $('notifyToggle'); if (!tg) return;
-    const on = isOn(), blocked = supported && perm() === 'denied' && askedAndBlocked;
+    const on = isOn(), blocked = supported && perm() === 'denied';
     tg.classList.toggle('on', on); tg.setAttribute('aria-checked', String(on));
-    $('notifySub').textContent = !supported ? 'This browser does not support notifications' : perm() === 'denied' ? 'Blocked in your browser. Use the button at the bottom of the sidebar to see how to allow them.' : 'Get a notification when a reminder is due. Works while Reminders is open in a tab.';
-    const box = $('notifyStatus'), msg = $('notifyMsg'), how = $('notifyHowBtn'), tip = $('notifyHowTip'), ico = $('notifyIco');
-    box.hidden = !(on || blocked);
-    ico.className = 'fa-solid ' + (on ? 'fa-bell' : 'fa-bell-slash');
-    msg.textContent = on ? 'Notifications are on' : 'Notifications are blocked in your browser';
-    $('notifyHowLabel').textContent = on ? 'Find out how to disable' : 'Find out how to allow';
-    $('notifyHowHead').textContent = on ? 'How to turn notifications off' : 'How to allow notifications';
-    tip.textContent = on ? 'Each button opens that browser’s own help page. Look for this site under notifications and set it to Block.'
-                         : 'Each button opens that browser’s own help page. Look for this site under notifications and set it to Allow.';
+    $('notifySub').textContent = !supported ? 'This browser does not support notifications' : blocked ? 'Blocked in your browser. Use the button at the bottom of the sidebar to see how to allow them.' : 'Get a notification when a reminder is due. Works while Reminders is open in a tab.';
+    $('notifyStatus').hidden = !supported;   // the card is always there, so it is always clear whether notifications are on
+    $('notifyIco').className = 'fa-solid ' + (on ? 'fa-bell' : 'fa-bell-slash');
+    $('notifyStatus').classList.toggle('off', !on);
+    $('notifyMsg').textContent = on ? 'Notifications are on' : 'Notifications are off';
+    $('notifyHowLabel').textContent = on ? 'Find out how to disable' : 'Find out how to enable';
+    const links = on || blocked;   // a browser help page is only needed to turn them off, or to undo a block
+    $('notifyHowHead').textContent = on ? 'How to turn notifications off' : blocked ? 'How to allow notifications' : 'How to turn notifications on';
+    $('notifyHowText').hidden = links; $('notifyHowLinks').hidden = !links; $('notifyHowGo').hidden = links;
+    $('notifyHowTip').textContent = on ? 'Each button opens that browser’s own help page. Look for this site under notifications and set it to Block.'
+                                       : 'Each button opens that browser’s own help page. Look for this site under notifications and set it to Allow.';
     $('notifyHowTitle').textContent = isMac() ? 'Pick your Mac browser.' : 'Pick your browser.';
   }
 
@@ -101,7 +103,7 @@
     if (p === 'granted') {
       settings.notify = true; saveSettings(); markOverdueSeen(); register(); render();
       showOverlay('notifyNoteOverlay'); const ok = $('notifyNoteOk'); if (ok) ok.focus({ preventScroll: true });   // tell them right away that the tab has to stay open
-    } else { settings.notify = false; askedAndBlocked = p === 'denied'; saveSettings(); render(); }
+    } else { settings.notify = false; saveSettings(); render(); }
   }
 
   // Browsers slow a page's own timers to about one a minute (and later still) once its tab is in the background, which would make
@@ -123,6 +125,7 @@
     tg.addEventListener('click', toggle);
     $('notifyNoteOk').addEventListener('click', () => { hideOverlay('notifyNoteOverlay'); tg.focus({ preventScroll: true }); });
     $('notifyHowBtn').addEventListener('click', () => { render(); showOverlay('notifyHowOverlay'); $('notifyHowOk').focus({ preventScroll: true }); });
+    $('notifyHowGo').addEventListener('click', () => { hideOverlay('notifyHowOverlay'); toggle(); });
     $('notifyHowOk').addEventListener('click', () => { hideOverlay('notifyHowOverlay'); $('notifyHowBtn').focus({ preventScroll: true }); });
     $('settingsBtn').addEventListener('click', render);   // the browser permission can change while the page is open
     if (settings.notify && perm() !== 'granted') { settings.notify = false; saveSettings(); }   // permission was withdrawn in the browser
@@ -132,5 +135,5 @@
     addEventListener('focus', tick);
     tick();
   });
-  window.__notify = { tick, isOn, render, show };
+  window.__notify = { tick, isOn, render, show, buildHelp };
 })();
