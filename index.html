@@ -354,12 +354,13 @@
   .browser-btn:hover, .browser-btn:focus-visible { border-color: var(--accent); background: var(--bg-hover); outline: none; }
   .browser-btn svg { width: 22px; height: 22px; flex-shrink: 0; }
   .browser-btn .browser-ico { width: 22px; font-size: 18px; text-align: center; color: var(--text-dim); }
-  .notify-status { margin-top: 6px; padding: 12px 14px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--bg-elev-2); }
-  .notify-status[hidden], .notify-how[hidden] { display: none; }
-  .notify-msg { display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 500; }
+  .notify-card { margin: 0 12px 10px; padding: 12px; border: 1px solid var(--accent); border-radius: var(--radius-sm); background: var(--accent-soft); flex-shrink: 0; }
+  .notify-card[hidden] { display: none; }
+  .notify-msg { display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 600; }
   .notify-msg i { color: var(--accent); width: 16px; text-align: center; }
-  .notify-status .btn { margin-top: 10px; }
-  .notify-how { margin-top: 12px; }
+  .notify-how-btn { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; margin-top: 10px; padding: 9px 10px; background: transparent; border: 1px solid var(--accent); border-radius: var(--radius-sm); color: var(--text); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; transition: var(--transition); }
+  .notify-how-btn:hover, .notify-how-btn:focus-visible { background: var(--accent); color: #fff; outline: none; }
+  #notifyHowOverlay .modal { max-height: calc(100% - 24px); overflow-y: auto; }
   .browser-btn span { flex: 1; }
   .browser-btn > i { font-size: 11px; color: var(--text-faint); }
   .cache-help-tip { font-size: 12px; color: var(--text-faint); margin-top: 10px; line-height: 1.5; }
@@ -876,6 +877,10 @@
       <input type="text" id="search" placeholder="Search reminders...">
     </div>
     <div class="list-scroll" id="listScroll"></div>
+    <div class="notify-card" id="notifyStatus" hidden>
+      <div class="notify-msg"><i id="notifyIco" class="fa-solid fa-bell" aria-hidden="true"></i><span id="notifyMsg" role="status">Notifications are on</span></div>
+      <button class="notify-how-btn" id="notifyHowBtn" type="button" aria-haspopup="dialog"><i class="fa-solid fa-circle-question"></i><span id="notifyHowLabel">Find out how to disable</span></button>
+    </div>
     <div class="sidebar-footer">
       <button class="icon-btn" id="importBtn" title="Import from file"><i class="fa-solid fa-file-import"></i></button>
       <button class="icon-btn" id="exportBtn" title="Export to file"><i class="fa-solid fa-file-export"></i></button>
@@ -962,15 +967,6 @@
         </div>
         <div class="toggle" id="notifyToggle" role="switch" tabindex="0" aria-label="Push notifications"></div>
       </div>
-      <div class="notify-status" id="notifyStatus" hidden>
-        <div class="notify-msg"><i id="notifyIco" class="fa-solid fa-bell" aria-hidden="true"></i><span id="notifyMsg" role="status">Notifications are on</span></div>
-        <button class="btn" id="notifyHowBtn" aria-expanded="false" aria-controls="notifyHow"><i class="fa-solid fa-circle-question"></i> Find out how to disable</button>
-        <div class="notify-how" id="notifyHow" hidden>
-          <div class="cache-help-title" id="notifyHowTitle">Pick your browser.</div>
-          <div class="browser-grid" id="notifyHowGrid"></div>
-          <div class="cache-help-tip" id="notifyHowTip"></div>
-        </div>
-      </div>
     </div>
 
     <div class="settings-section">
@@ -1004,6 +1000,19 @@
     <div class="modal-actions">
       <button class="btn" id="cacheHelpBtn" aria-expanded="false" aria-controls="cacheHelp"><i class="fa-solid fa-circle-question"></i> How do I clear my cache?</button>
       <button class="btn btn-primary" id="saveNoteOk">Got it!</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="notifyHowOverlay">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="notifyHowHead">
+    <div class="modal-icon neutral"><i class="fa-solid fa-bell-slash"></i></div>
+    <h2 id="notifyHowHead">How to turn notifications off</h2>
+    <div class="cache-help-title" id="notifyHowTitle">Pick your browser.</div>
+    <div class="browser-grid" id="notifyHowGrid"></div>
+    <div class="cache-help-tip" id="notifyHowTip"></div>
+    <div class="modal-actions">
+      <button class="btn btn-primary" id="notifyHowOk">Done</button>
     </div>
   </div>
 </div>
@@ -2534,6 +2543,6 @@ document.addEventListener('DOMContentLoaded', init);
 <script src="version.js?v=5"></script>
 <script src="changelog.js?v=2"></script>
 <script src="guide.js?v=2"></script>
-<script src="notify.js?v=2"></script>
+<script src="notify.js?v=4"></script>
 </body>
 </html>
