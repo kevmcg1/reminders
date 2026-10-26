@@ -102,7 +102,7 @@
     if (p === 'default') { try { p = await Notification.requestPermission(); } catch (e) { p = perm(); } }
     if (p === 'granted') {
       settings.notify = true; saveSettings(); markOverdueSeen(); register(); render();
-      toast('Notifications are on');
+      showOverlay('notifyNoteOverlay'); const ok = $('notifyNoteOk'); if (ok) ok.focus({ preventScroll: true });   // tell them right away that the tab has to stay open
     } else { settings.notify = false; saveSettings(); render(); }
   }
 
@@ -110,6 +110,7 @@
     const tg = $('notifyToggle'); if (!tg) return;
     buildHelp();
     tg.addEventListener('click', toggle);
+    $('notifyNoteOk').addEventListener('click', () => { hideOverlay('notifyNoteOverlay'); tg.focus({ preventScroll: true }); });
     $('notifyHowBtn').addEventListener('click', () => { const h = $('notifyHow'); h.hidden = !h.hidden; render(); });
     $('settingsBtn').addEventListener('click', render);   // the browser permission can change while the page is open
     if (settings.notify && perm() !== 'granted') { settings.notify = false; saveSettings(); }   // permission was withdrawn in the browser

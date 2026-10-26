@@ -1008,6 +1008,17 @@
   </div>
 </div>
 
+<div class="overlay" id="notifyNoteOverlay">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="notifyNoteTitle">
+    <div class="modal-icon neutral"><i class="fa-solid fa-bell"></i></div>
+    <h2 id="notifyNoteTitle">Notifications are on</h2>
+    <p>Reminders will only pop up with this tab being open. So, you can still have it open somewhere in the background.</p>
+    <div class="modal-actions">
+      <button class="btn btn-primary" id="notifyNoteOk">Got it!</button>
+    </div>
+  </div>
+</div>
+
 <div class="overlay" id="changelogOverlay"><div class="modal wide"></div></div>
 
 <div class="overlay" id="delOverlay">
@@ -2523,6 +2534,6 @@ document.addEventListener('DOMContentLoaded', init);
 <script src="version.js?v=5"></script>
 <script src="changelog.js?v=2"></script>
 <script src="guide.js?v=2"></script>
-<script src="notify.js?v=1"></script>
+<script src="notify.js?v=2"></script>
 </body>
 </html>
