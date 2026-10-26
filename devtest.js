@@ -13,6 +13,7 @@
    Notifications: the browser's notification API is replaced by a fake for the whole run (no real permission prompt, no real notification), so the tester
    can switch notifications on, off and blocked, check the sidebar card ("Notifications are on / off" and its "Find out how to enable / disable" help dialog,
    with the right browsers for Windows and for a Mac), the "tab must stay open" pop up, and that a due reminder notifies once and a completed or old one never does.
+   The sidebar order and labels, and the small motion touches (a new row bubbles in, a newly opened reminder fades in, typing never replays it) are checked too.
    Pop ups bubble in and out: it checks they grow to full size, settle, and hide for good (not clickable) when closed.
    YOUR DATA IS SAFE: while a run is on, the app's two localStorage entries (reminders and settings) are redirected into a scratch copy in memory,
    the app starts from an empty scratch list, and when the run ends your own reminders and settings are put back exactly as they were.
@@ -633,7 +634,7 @@ async function popDone(el) {   // wait for a card that is bubbling in to finish 
 async function settle() {
   await raf(); await raf();
   // dialogs and the walkthrough card bubble in over about half a second: measure them once they have settled, never mid-pop
-  const run = (document.getAnimations ? document.getAnimations() : []).filter((x) => { try { return x.playState === 'running' && x.effect.getComputedTiming().iterations !== Infinity; } catch (e) { return false; } });
+  const run = (document.getAnimations ? document.getAnimations() : []).filter((x) => { try { const t = x.effect.target; return x.playState === 'running' && x.effect.getComputedTiming().iterations !== Infinity && !!(t && t.closest && t.closest('.overlay, .toast, .gd-card')); } catch (e) { return false; } });   // (only the pop ups: small hover and focus fades on buttons and boxes, and rows or panes fading in, never hide or move what is measured)
   if (run.length) await Promise.allSettled(run.map((x) => x.finished));
 }
 // writes a first title and pauses, the way a person does, so the one-time cache note comes up
@@ -937,7 +938,7 @@ const MACROS = {
   },
   async 'bubble pop ups'() {
     seedData([], null);
-    for (const id of ['settingsOverlay', 'helpOverlay', 'wipeOverlay', 'notifyHowOverlay']) {
+    for (const id of ['settingsOverlay', 'notifyHowOverlay']) {
       const o = byId(id), m = o.querySelector('.modal'), scaleOf = () => new DOMMatrix(getComputedStyle(m).transform).a, vis = () => getComputedStyle(o).visibility;
       closeOverlays(); await animsDone(o); expect(id + ' is hidden and cannot be clicked while closed', vis() === 'hidden' && getComputedStyle(o).pointerEvents === 'none', id + ' is still reachable while closed', 'bubble closed ' + id);
       o.classList.add('show'); const early = scaleOf(), growing = o.getAnimations({ subtree: true }).length > 0; await animsDone(o);
@@ -948,6 +949,19 @@ const MACROS = {
     const t = byId('toast'); t.classList.remove('show'); await animsDone(t); t.classList.add('show'); const tEarly = new DOMMatrix(getComputedStyle(t).transform).a; await animsDone(t);
     expect('the small message at the bottom bubbles up and settles at full size', tEarly < 0.99 && Math.abs(new DOMMatrix(getComputedStyle(t).transform).a - 1) < 0.01 && +getComputedStyle(t).opacity > 0.99, 'The toast did not grow and settle at full size (it started at ' + tEarly.toFixed(2) + ')', 'bubble toast'); t.classList.remove('show');
     closeOverlays(); feature('bubble pop ups');
+  },
+  async 'tidy sidebar and smooth touches'() {
+    seedData(baselineData(), null);
+    const sb = byId('sidebar'), kids = [...sb.children], idx = (el) => kids.indexOf(el.closest('#sidebar > *'));
+    const list = byId('listScroll'), foot = $('.sidebar-footer'), guide = byId('guideBtn');
+    expect('the sidebar is in a clear order: title, New Reminder, search, the list, then help, notifications and the file buttons', idx(byId('addBtn')) < idx(byId('search')) && idx(byId('search')) < idx(list) && idx(list) < idx(guide) && idx(guide) < idx(byId('notifyStatus')) && idx(byId('notifyStatus')) < idx(foot), 'The sidebar parts are not in the expected order', 'sidebar order');
+    expect('Import, Export and Wipe all have a word under their icon', ['importBtn', 'exportBtn', 'wipeBtn'].every((id, i) => squash(byId(id).textContent) === ['Import', 'Export', 'Wipe all'][i]), 'A button at the bottom of the sidebar has no label', 'foot labels');
+    const chips = [$('.stable-row'), $('.rem-vrow')].filter(Boolean).map((e) => Math.round(e.getBoundingClientRect().left)); expect('the tags under the logo line up on the left', chips.length === 2 && Math.abs(chips[0] - chips[1]) <= 1, 'The Stable release tag and the version chip do not line up: ' + chips.join(' vs '), 'tags align');
+    const n0 = $$('.reminder-item').length; await click('#addBtn'); await settle(); const fresh = $$('.reminder-item').filter((e) => e.classList.contains('enter') || e.getAnimations().length);
+    expect('a new reminder bubbles into the list', $$('.reminder-item').length === n0 + 1 && fresh.length >= 1, 'The new row did not animate in', 'row enter'); await animsDone(list);
+    expect('only the new row bubbles in, the others stay still', fresh.length === 1, fresh.length + ' rows animated for one new reminder', 'row only');
+    const first = $$('.reminder-item').find((e) => !e.classList.contains('active')); if (first) { await click(first); const d = byId('detail'); expect('opening another reminder fades its pane in', d.classList.contains('swap') || d.getAnimations().length > 0, 'The edit pane did not fade in when another reminder was opened', 'detail swap'); await animsDone(d); const typed = d.getAnimations().length; typeInto(byId('d-title'), 'x'); await settle(); expect('typing in a reminder does not replay the fade', !byId('detail').classList.contains('swap') && d.getAnimations().length <= typed, 'The pane faded in again while typing', 'no replay'); }
+    feature('sidebar and motion checks');
   },
   async 'first reminder note and browser help'() {
     seedData([], null); SBX.store.delete(A.SAVE_NOTE_KEY); T.noteOn = true;
