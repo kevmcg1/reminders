@@ -13,7 +13,7 @@
   const readSeen = () => { try { return JSON.parse(localStorage.getItem(NOTIFIED_KEY)) || {}; } catch (e) { return {}; } };
   const writeSeen = o => { try { localStorage.setItem(NOTIFIED_KEY, JSON.stringify(o)); } catch (e) {} };
 
-  let swReg = null;
+  let swReg = null, askedAndBlocked = false;   // the blocked notice only shows after the person tried to turn notifications on
   async function register() {
     if (swReg || !('serviceWorker' in navigator)) return swReg;
     try { swReg = await navigator.serviceWorker.register('sw.js'); } catch (e) { swReg = null; }
@@ -79,20 +79,18 @@
 
   function render() {
     const tg = $('notifyToggle'); if (!tg) return;
-    const on = isOn(), blocked = supported && perm() === 'denied';
+    const on = isOn(), blocked = supported && perm() === 'denied' && askedAndBlocked;
     tg.classList.toggle('on', on); tg.setAttribute('aria-checked', String(on));
-    $('notifySub').textContent = !supported ? 'This browser does not support notifications' : 'Get a notification when a reminder is due. Works while Reminders is open in a tab.';
+    $('notifySub').textContent = !supported ? 'This browser does not support notifications' : perm() === 'denied' ? 'Blocked in your browser. Use the button at the bottom of the sidebar to see how to allow them.' : 'Get a notification when a reminder is due. Works while Reminders is open in a tab.';
     const box = $('notifyStatus'), msg = $('notifyMsg'), how = $('notifyHowBtn'), tip = $('notifyHowTip'), ico = $('notifyIco');
-    box.hidden = !(on || blocked || !supported);
-    if (box.hidden) $('notifyHow').hidden = true;
+    box.hidden = !(on || blocked);
     ico.className = 'fa-solid ' + (on ? 'fa-bell' : 'fa-bell-slash');
-    msg.textContent = on ? 'Notifications are on' : blocked ? 'Notifications are blocked in your browser' : 'Notifications are not available here';
-    how.hidden = !(on || blocked);
-    how.lastChild.textContent = on ? ' Find out how to disable' : ' Find out how to allow';
+    msg.textContent = on ? 'Notifications are on' : 'Notifications are blocked in your browser';
+    $('notifyHowLabel').textContent = on ? 'Find out how to disable' : 'Find out how to allow';
+    $('notifyHowHead').textContent = on ? 'How to turn notifications off' : 'How to allow notifications';
     tip.textContent = on ? 'Each button opens that browser’s own help page. Look for this site under notifications and set it to Block.'
                          : 'Each button opens that browser’s own help page. Look for this site under notifications and set it to Allow.';
-    if (!how.hidden) { $('notifyHowTitle').textContent = isMac() ? 'Pick your Mac browser.' : 'Pick your browser.'; }
-    how.setAttribute('aria-expanded', String(!$('notifyHow').hidden));
+    $('notifyHowTitle').textContent = isMac() ? 'Pick your Mac browser.' : 'Pick your browser.';
   }
 
   async function toggle() {
@@ -103,7 +101,20 @@
     if (p === 'granted') {
       settings.notify = true; saveSettings(); markOverdueSeen(); register(); render();
       showOverlay('notifyNoteOverlay'); const ok = $('notifyNoteOk'); if (ok) ok.focus({ preventScroll: true });   // tell them right away that the tab has to stay open
-    } else { settings.notify = false; saveSettings(); render(); }
+    } else { settings.notify = false; askedAndBlocked = p === 'denied'; saveSettings(); render(); }
+  }
+
+  // Browsers slow a page's own timers to about one a minute (and later still) once its tab is in the background, which would make
+  // reminders late. A Web Worker's timer is not slowed that way, so it does the ticking; the page's own timer is only the fallback.
+  let clock = null;
+  function startClock() {
+    if (clock) return;
+    try {
+      const src = 'setInterval(function(){postMessage(1)},3000)';
+      const url = URL.createObjectURL(new Blob([src], { type: 'text/javascript' }));
+      clock = new Worker(url); URL.revokeObjectURL(url);
+      clock.onmessage = tick; clock.onerror = () => { clock = null; setInterval(tick, 15000); };
+    } catch (e) { clock = null; setInterval(tick, 15000); }
   }
 
   document.addEventListener('DOMContentLoaded', () => {
@@ -111,11 +122,12 @@
     buildHelp();
     tg.addEventListener('click', toggle);
     $('notifyNoteOk').addEventListener('click', () => { hideOverlay('notifyNoteOverlay'); tg.focus({ preventScroll: true }); });
-    $('notifyHowBtn').addEventListener('click', () => { const h = $('notifyHow'); h.hidden = !h.hidden; render(); });
+    $('notifyHowBtn').addEventListener('click', () => { render(); showOverlay('notifyHowOverlay'); $('notifyHowOk').focus({ preventScroll: true }); });
+    $('notifyHowOk').addEventListener('click', () => { hideOverlay('notifyHowOverlay'); $('notifyHowBtn').focus({ preventScroll: true }); });
     $('settingsBtn').addEventListener('click', render);   // the browser permission can change while the page is open
     if (settings.notify && perm() !== 'granted') { settings.notify = false; saveSettings(); }   // permission was withdrawn in the browser
     render(); if (isOn()) register();
-    setInterval(tick, 15000);
+    startClock();
     document.addEventListener('visibilitychange', () => { if (!document.hidden) tick(); });
     addEventListener('focus', tick);
     tick();
