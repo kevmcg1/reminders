@@ -862,6 +862,49 @@
   }
 </style>
 <style>/* status tag under the logo */.stable-row{display:flex;justify-content:center;margin:7px 0 0}.stable-tag{display:inline-flex;align-items:center;gap:5px;padding:3px 9px 3px 8px;border:1px solid rgba(95,207,138,.45);border-radius:999px;background:rgba(95,207,138,.08);color:#5fcf8a;font:800 9.5px/1 "Inter",system-ui,sans-serif;letter-spacing:.16em;text-transform:uppercase;white-space:nowrap}.stable-tag::before{content:"";width:5px;height:5px;border-radius:50%;background:currentColor;box-shadow:0 0 6px currentColor}</style>
+<style id="ui-polish">
+/* ---------- tidier sidebar ---------- */
+.sidebar .brand-col { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
+.sidebar .stable-row, .sidebar .rem-vrow { margin: 0 !important; justify-content: flex-start; }
+.sidebar-header { padding: 18px 16px 14px; }
+.add-btn { margin: 0 16px 10px; }
+.list-scroll { padding: 6px 10px 12px; scroll-behavior: smooth; overscroll-behavior: contain; }
+.sidebar .guide-row { padding: 0 12px 6px; }
+.sidebar #guideBtn { justify-content: flex-start; padding: 8px 10px; background: transparent; border-color: transparent; color: var(--text-dim); font-weight: 500; transition: background 220ms ease, color 220ms ease, border-color 220ms ease, transform 160ms ease; }
+.sidebar #guideBtn .gd-q { width: 18px; height: 18px; font-size: 11px; }
+.sidebar #guideBtn:hover, .sidebar #guideBtn:focus-visible { background: var(--accent-soft); color: var(--text); border-color: transparent; }
+.sidebar #guideBtn:hover .gd-q, .sidebar #guideBtn:focus-visible .gd-q { background: var(--accent); }
+.notify-card { margin: 0 12px 8px; padding: 10px 12px; }
+.notify-msg { font-size: 13.5px; }
+.notify-how-btn { margin-top: 8px; padding: 7px 10px; font-size: 12.5px; }
+.sidebar-footer { padding: 6px 10px 8px; gap: 4px; }
+.foot-btn { width: auto; height: auto; flex: 1; flex-direction: column; gap: 4px; padding: 8px 4px; font-size: 14px; }
+.foot-btn span { font-size: 10.5px; font-weight: 500; letter-spacing: .02em; }
+.foot-btn:hover i { transform: translateY(-1px); }
+.foot-btn i { transition: transform 200ms cubic-bezier(.34,1.56,.64,1); }
+#wipeBtn:hover { color: var(--danger); background: rgba(255,95,109,.1); }
+.reminder-item { margin-bottom: 2px; transition: background 200ms ease, transform 200ms ease; }
+.reminder-item:active { transform: scale(.985); }
+.completed-header { transition: color 200ms ease, background 200ms ease; }
+/* ---------- smooth, bubbly motion ---------- */
+html { scroll-behavior: smooth; }
+.main { scroll-behavior: smooth; overscroll-behavior: contain; }
+.btn, .icon-btn, .data-btn, .add-btn, .notify-how-btn, .sample-btn, .browser-btn, .toggle, .theme-swatch { transition-property: background-color, border-color, color, transform, filter, box-shadow, opacity; transition-duration: 200ms; transition-timing-function: cubic-bezier(.4, 0, .2, 1); }
+.btn:active, .icon-btn:active, .data-btn:active, .notify-how-btn:active, .browser-btn:active, .theme-swatch:active { transform: scale(.96); }
+.toggle::after { transition: transform 320ms cubic-bezier(.34, 1.56, .64, 1), background 200ms ease; }
+.ri-check { transition: background-color 220ms ease, border-color 220ms ease, transform 260ms cubic-bezier(.34, 1.56, .64, 1); }
+.ri-check:active { transform: scale(.85); }
+.ri-check i { transition: opacity 180ms ease, transform 260ms cubic-bezier(.34, 1.56, .64, 1); transform: scale(.4); }
+.ri-check.done i { transform: scale(1); }
+.reminder-item.enter { animation: item-bubble 520ms cubic-bezier(.34, 1.4, .64, 1); }
+@keyframes item-bubble { 0% { opacity: 0; scale: .86; translate: 0 -8px; } 60% { opacity: 1; } 100% { opacity: 1; scale: 1; translate: 0 0; } }
+.detail.swap { animation: detail-in 340ms cubic-bezier(.2, .8, .3, 1); }
+@keyframes detail-in { from { opacity: 0; translate: 0 10px; } to { opacity: 1; translate: 0 0; } }
+.empty-list, .main-empty { animation: detail-in 420ms cubic-bezier(.2, .8, .3, 1); }
+input, textarea, select { transition: border-color 200ms ease, box-shadow 200ms ease, background-color 200ms ease; }
+@media (max-height: 660px) { .foot-btn span { display: none; } .foot-btn { padding: 6px 4px; } .notify-card { padding: 7px 10px; margin-bottom: 6px; } .notify-how-btn { margin-top: 6px; padding: 5px 8px; } .sidebar .guide-row { padding-bottom: 2px; } .sidebar #guideBtn { padding: 5px 10px; } .sidebar-header { padding-top: 12px; padding-bottom: 8px; } }
+@media (prefers-reduced-motion: reduce) { .reminder-item.enter, .detail.swap, .empty-list, .main-empty { animation: none; } html, .main, .list-scroll { scroll-behavior: auto; } }
+</style>
 </head>
 <body data-theme="midnight" data-density="cozy">
 
@@ -877,21 +920,21 @@
         <button class="icon-btn" id="settingsBtn" title="Settings"><i class="fa-solid fa-sliders"></i></button>
       </div>
     </div>
-    <div class="guide-row"><button id="guideBtn" type="button" aria-label="How do I use this? A guided walkthrough of making a reminder"><span class="gd-q" aria-hidden="true">?</span><span>How do I use this?</span></button></div>
     <button class="add-btn" id="addBtn"><i class="fa-solid fa-plus"></i> New Reminder</button>
     <div class="search-wrap">
       <i class="fa-solid fa-magnifying-glass"></i>
       <input type="text" id="search" placeholder="Search reminders...">
     </div>
     <div class="list-scroll" id="listScroll"></div>
+    <div class="guide-row"><button id="guideBtn" type="button" aria-label="How do I use this? A guided walkthrough of making a reminder"><span class="gd-q" aria-hidden="true">?</span><span>How do I use this?</span></button></div>
     <div class="notify-card" id="notifyStatus" hidden>
       <div class="notify-msg"><i id="notifyIco" class="fa-solid fa-bell" aria-hidden="true"></i><span id="notifyMsg" role="status">Notifications are on</span></div>
       <button class="notify-how-btn" id="notifyHowBtn" type="button" aria-haspopup="dialog"><i class="fa-solid fa-circle-question"></i><span id="notifyHowLabel">Find out how to disable</span></button>
     </div>
     <div class="sidebar-footer">
-      <button class="icon-btn" id="importBtn" title="Import from file"><i class="fa-solid fa-file-import"></i></button>
-      <button class="icon-btn" id="exportBtn" title="Export to file"><i class="fa-solid fa-file-export"></i></button>
-      <button class="icon-btn" id="wipeBtn" title="Wipe all"><i class="fa-solid fa-trash-can"></i></button>
+      <button class="icon-btn foot-btn" id="importBtn" title="Import from file"><i class="fa-solid fa-file-import"></i><span>Import</span></button>
+      <button class="icon-btn foot-btn" id="exportBtn" title="Export to file"><i class="fa-solid fa-file-export"></i><span>Export</span></button>
+      <button class="icon-btn foot-btn" id="wipeBtn" title="Wipe all"><i class="fa-solid fa-trash-can"></i><span>Wipe all</span></button>
     </div>
   </aside>
 
@@ -2538,13 +2581,13 @@ function init() {
     e.preventDefault(); e.stopPropagation(); window.__devApi = api();
     if (window.DevTest) { window.DevTest.toggle(); return; }
     if (loading) return; loading = true;
-    const sc = document.createElement('script'); sc.src = 'devtest.js?v=3'; sc.onload = () => { loading = false; window.DevTest && window.DevTest.toggle(true); }; sc.onerror = () => { loading = false; toast('Could not load the dev tool (devtest.js)'); };
+    const sc = document.createElement('script'); sc.src = 'devtest.js?v=4'; sc.onload = () => { loading = false; window.DevTest && window.DevTest.toggle(true); }; sc.onerror = () => { loading = false; toast('Could not load the dev tool (devtest.js)'); };
     document.head.appendChild(sc);
   }, true);
   /* ?dev=quick | standard | thorough | problems | newbie | speed | free opens the tester and starts that run by itself */
   const auto = /[?&]dev=(quick|standard|thorough|problems|newbie|speed|free)\b/.exec(location.search);
   if (auto) setTimeout(() => {
-    window.__devApi = api(); const sc = document.createElement('script'); sc.src = 'devtest.js?v=3';
+    window.__devApi = api(); const sc = document.createElement('script'); sc.src = 'devtest.js?v=4';
     sc.onload = () => { window.DevTest.toggle(true); const m = document.getElementById('dtMode'); if (m) { m.value = auto[1]; m.onchange && m.onchange(); } const go = document.querySelector('#devtest [data-a=start]'); if (go) go.click(); };
     document.head.appendChild(sc);
   }, 2500);
@@ -2552,9 +2595,10 @@ function init() {
 
 document.addEventListener('DOMContentLoaded', init);
 </script>
-<script src="version.js?v=5"></script>
+<script src="version.js?v=6"></script>
 <script src="changelog.js?v=2"></script>
 <script src="guide.js?v=4"></script>
 <script src="notify.js?v=6"></script>
+<script src="ui.js?v=1"></script>
 </body>
 </html>
