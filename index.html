@@ -1397,6 +1397,7 @@ function parseNaturalLanguage(text) {
     mi = m[2] ? parseInt(m[2]) : 0; res.timeSet = true;
   } else if ((m = read(/\bat\s+(2[0-3]|[01]?\d):([0-5]\d)\b/i))) {
     hh = parseInt(m[1]); mi = parseInt(m[2]); res.timeSet = true;
+    if (tonight && hh < 12) hh += 12;   // "tonight at 8:30" means the evening
   } else if (read(/\b(noon|midday)\b/i)) { hh = 12; mi = 0; res.timeSet = true; }
   else if (read(/\bmidnight\b/i)) { hh = 0; mi = 0; res.timeSet = true; }
   else if (read(/\bmorning\b/i)) { hh = 9; mi = 0; res.timeSet = true; }
